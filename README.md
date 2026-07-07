@@ -18,7 +18,8 @@ Com um agente e uma única tentativa, o Gemma-4-31B refatorou corretamente 78.7%
 ```
 .
 ├── Dataset/
-│   └── Dataset.xlsx                      # 150 instâncias (5 abas, uma por smell)
+│   ├── Dataset.xlsx                      # 150 instâncias (5 abas, uma por smell)
+│   └── csv/                              # cada aba exportada como CSV (entrada dos notebooks)
 ├── Source Code/
 │   ├── test_smell_refactor_single_agent.ipynb   # pipeline de 1 agente
 │   └── test_smell_refactor_multi_agent.ipynb    # pipeline de 4 agentes
@@ -52,7 +53,7 @@ Definições adotadas para cada tipo de smell, conforme o estudo original:
 | **Exception Handling** | Occurs when a test method contains either a `throw` statement or at least a `catch` clause. To avoid this smell, use the testing framework's features (e.g., `assertThrows`) instead of manually catching or throwing exceptions. |
 | **Magic Number** | Occurs when a test method contains an assertion with a numeric literal as an argument. Refactoring involves extracting and initializing all magic numbers into constants or local variables with descriptive names. |
 
-O `Dataset.xlsx` contém uma aba por smell, com as colunas `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code` e `Line Count`. Os notebooks consomem o dataset em CSV (`Dataset.csv`), obtido pela exportação da aba correspondente.
+O `Dataset.xlsx` contém uma aba por smell, com as colunas `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code` e `Line Count`. Os notebooks leem o dataset em formato CSV (`Dataset.csv`, via `pd.read_csv`), correspondente a um smell por vez. Para conveniência, o diretório `Dataset/csv/` já traz cada aba exportada como CSV (`Assertion_Roulette.csv`, `Conditional_Test_Logic.csv`, `Duplicate_Assert.csv`, `Exception_Handling.csv`, `Magic_Number.csv`); basta apontar o parâmetro `csv_path` para o arquivo do smell desejado (ou copiá-lo como `Dataset.csv`).
 
 ## Pipelines
 
@@ -71,7 +72,7 @@ A variante de dois agentes é omitida por custo, uma vez que os resultados origi
 
 ## Ambiente de execução
 
-Modelo `gemma4:31b` servido pelo Ollama e acessado pela pipeline LangChain, executado em ambiente Google Colab com GPU NVIDIA A100. O identificador exato do modelo está registrado no pacote.
+Modelo `gemma4:31b` servido pelo Ollama e acessado pela pipeline LangChain, executado em ambiente Google Colab com GPU NVIDIA A100, usando a configuração padrão do notebook de referência do estudo original. O identificador exato do modelo está registrado no pacote.
 
 ## Reprodução
 
@@ -92,11 +93,10 @@ Cada notebook expõe os seguintes parâmetros:
 | `definitions_path` | `test_smell_definitions_and_refactorings.txt` | Arquivo de definições dos smells. |
 | `smell` | um dos cinco smells | Smell analisado na execução. |
 | `model` | `gemma4:31b` | Modelo servido pelo Ollama. |
-| `temperature` | `0.6` | Temperatura de amostragem. |
 | `base_url` | `http://localhost:11434` | Endereço do servidor Ollama. |
 | `max_iters` | `3` (apenas multi) | Máximo de iterações do laço Evaluator-Optimizer. |
 
-Os resultados reportados foram obtidos com a configuração padrão de geração do Ollama, alinhada ao baseline do estudo original.
+Os resultados reportados foram obtidos com a configuração padrão do notebook de referência do estudo original.
 
 ## Formato das saídas
 
@@ -168,8 +168,7 @@ Se este trabalho for útil, cite:
   year         = {2026},
   howpublished = {Replication package},
   institution  = {Universidade Federal de Campina Grande (UFCG)},
-  url          = {https://github.com/Rian-Ismael/Replication-Package},
-  note         = {DOI a preencher apos deposito no Zenodo}
+  url          = {https://github.com/Rian-Ismael/Replication-Package}
 }
 ```
 
