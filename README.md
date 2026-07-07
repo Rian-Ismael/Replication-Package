@@ -18,11 +18,11 @@ Com um agente e uma única tentativa, o Gemma-4-31B refatorou corretamente 78.7%
 ```
 .
 ├── Dataset/
-│   ├── Dataset.xlsx                      # 150 instâncias (5 abas, uma por smell)
-│   └── csv/                              # cada aba exportada como CSV (entrada dos notebooks)
+│   └── Dataset.xlsx                      # 150 instâncias (5 abas, uma por smell)
 ├── Source Code/
 │   ├── test_smell_refactor_single_agent.ipynb   # pipeline de 1 agente
-│   └── test_smell_refactor_multi_agent.ipynb    # pipeline de 4 agentes
+│   ├── test_smell_refactor_multi_agent.ipynb    # pipeline de 4 agentes
+│   └── test_smell_definitions_and_refactorings.txt  # definições dos smells (entrada dos notebooks)
 ├── Outputs Gemma4-31B/
 │   ├── Single/                           # saídas do pipeline de 1 agente
 │   │   ├── Assertion Roulette/           # output_*.csv + agente_single_*.txt
@@ -53,7 +53,7 @@ Definições adotadas para cada tipo de smell, conforme o estudo original:
 | **Exception Handling** | Occurs when a test method contains either a `throw` statement or at least a `catch` clause. To avoid this smell, use the testing framework's features (e.g., `assertThrows`) instead of manually catching or throwing exceptions. |
 | **Magic Number** | Occurs when a test method contains an assertion with a numeric literal as an argument. Refactoring involves extracting and initializing all magic numbers into constants or local variables with descriptive names. |
 
-O `Dataset.xlsx` contém uma aba por smell, com as colunas `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code` e `Line Count`. Os notebooks leem o dataset em formato CSV (`Dataset.csv`, via `pd.read_csv`), correspondente a um smell por vez. Para conveniência, o diretório `Dataset/csv/` já traz cada aba exportada como CSV (`Assertion_Roulette.csv`, `Conditional_Test_Logic.csv`, `Duplicate_Assert.csv`, `Exception_Handling.csv`, `Magic_Number.csv`); basta apontar o parâmetro `csv_path` para o arquivo do smell desejado (ou copiá-lo como `Dataset.csv`).
+O `Dataset.xlsx` contém uma aba por smell, com as colunas `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code` e `Line Count`. Os notebooks leem o dataset em formato CSV (`Dataset.csv`, via `pd.read_csv`), correspondente a um smell por vez. Para reproduzir, exporte a aba do smell desejado do `Dataset.xlsx` como CSV e aponte o parâmetro `csv_path` para esse arquivo (ou salve-o como `Dataset.csv`).
 
 ## Pipelines
 
@@ -76,7 +76,7 @@ Modelo `gemma4:31b` servido pelo Ollama e acessado pela pipeline LangChain, exec
 
 ## Reprodução
 
-Requisitos no ambiente antes da execução: `Dataset.csv`, o arquivo de definições `test_smell_definitions_and_refactorings.txt` e um servidor Ollama acessível. O arquivo de definições segue o formato lido pela função `load_smell`:
+Requisitos no ambiente antes da execução: o CSV do smell (exportado do `Dataset.xlsx`), o arquivo de definições `test_smell_definitions_and_refactorings.txt` (em `Source Code/`) e um servidor Ollama acessível. O arquivo de definições segue o formato lido pela função `load_smell`:
 
 ```
 test_smell_name = "Nome do Smell"
