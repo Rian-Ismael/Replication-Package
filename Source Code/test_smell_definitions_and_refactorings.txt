@@ -1,0 +1,35 @@
+test_smell_name = "Assertion Roulette"
+test_smell_definition = """
+A test method contains more than one assertion statement without an explanation or message (parameter in the assertion method).
+How to refactor?
+Add a message to each assertion: Provide short, specific explanations so you know why an assertion fails.
+"""
+
+test_smell_name = "Magic Number Test"
+test_smell_definition = """
+The Magic Number Test smell occurs when a test method contains an assertion with a numeric literal as an argument.
+How to refactor?
+Extract and initialize all magic numbers into constants or local variables with descriptive names.
+"""
+
+test_smell_name = "Duplicate Assert"
+test_smell_definition = """
+The Duplicate Assert test smell occurs when a test method contains more than one assertion statement with the same parameters.
+How to refactor?
+If multiple assertions test different scenarios or states, split them into separate tests for clarity.
+"""
+
+test_smell_name = "Exception Handling"
+test_smell_definition = """
+The Exception Handling test smell occurs when a test method contains either a throw statement or at least a catch clause.
+How to refactor?
+Use the testing framework’s features (e.g., assertThrows) instead of manually catching or throwing exceptions.
+"""
+
+test_smell_name = "Conditional Test Logic"
+test_smell_definition = """
+The Conditional Test Logic test smell occurs when a test method contains one or more control statements
+(i.e if, switch, conditional expression, for, foreach and while statement).
+How to refactor?
+Create a dedicated test method for each condition.
+"""
