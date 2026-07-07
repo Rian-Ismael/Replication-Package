@@ -156,6 +156,27 @@ Distribuição das razões de falha por configuração:
 
 A quase totalidade das falhas concentra-se na etapa de reparo, e não na de detecção. O pipeline de um agente nunca falha por não identificar um smell, e o de quatro falha nessa etapa apenas em 4 casos, todos decorrentes da confirmação adicional. As duas categorias exclusivas do pipeline de quatro agentes (smell não detectado e refatoração correta rejeitada pelo verificador) indicam que os estágios adicionais podem remover resultados corretos, efeito mais evidente em Duplicate Assert.
 
+## Como citar
+
+Se este trabalho for útil, cite:
+
+```bibtex
+@misc{melo2026replicating,
+  author       = {Rian Melo},
+  title        = {Replicating Agentic Workflows for Test Smell Detection
+                  and Refactoring with Gemma-4-31B},
+  year         = {2026},
+  howpublished = {Replication package},
+  institution  = {Universidade Federal de Campina Grande (UFCG)},
+  url          = {https://github.com/Rian-Ismael/Replication-Package},
+  note         = {DOI a preencher apos deposito no Zenodo}
+}
+```
+
+Autor: Rian Melo, Universidade Federal de Campina Grande (UFCG), Campina Grande, Paraíba, Brasil. Contato: rian.melo@ccc.ufcg.edu.br
+
+Repositório: https://github.com/Rian-Ismael/Replication-Package
+
 ## Referências
 
 * Rian Melo et al. **Agentic LMs: Hunting Down Test Smells.** IEEE Software 43, 1 (2026), 32 a 40. doi:10.1109/MS.2025.3621356
