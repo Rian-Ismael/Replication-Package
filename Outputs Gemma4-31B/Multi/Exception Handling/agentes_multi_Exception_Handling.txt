@@ -1,0 +1,1218 @@
+
+===== Test 1 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testClearStorage() throws Exception {
+        final String[][] values = generateValues();
+        loadValues(values);
+        close();
+
+        manager = openStorageManagerForClearStorageTest();
+        assertTrue(manager.exists(), "storage should exist before clearing");
+        manager.clearStorage();
+        try {
+            assertFalse(manager.exists(), "storage should not exist after clearing");
+        } catch (Exception e) {
+            // Retry to accommodate backends (e.g. BerkeleyDB) which may require a clean manager after clearing storage
+            manager.close();
+            manager = openStorageManager();
+            assertFalse(manager.exists(), "storage should not exist after clearing");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `catch` clause within a try-catch block, which is explicitly defined as the "Exception Handling" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testClearStorage() throws Exception {
+    final String[][] values = generateValues();
+    loadValues(values);
+    close();
+
+    manager = openStorageManagerForClearStorageTest();
+    assertTrue(manager.exists(), "storage should exist before clearing");
+    manager.clearStorage();
+    verifyStorageCleared();
+}
+
+private void verifyStorageCleared() throws Exception {
+    try {
+        assertFalse(manager.exists(), "storage should not exist after clearing");
+    } catch (Exception e) {
+        // Retry to accommodate backends (e.g. BerkeleyDB) which may require a clean manager after clearing storage
+        manager.close();
+        manager = openStorageManager();
+        assertFalse(manager.exists(), "storage should not exist after clearing");
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains the Exception Handling test smell because the `verifyStorageCleared` method, which is part of the test logic, uses a manual `try-catch` block instead of utilizing JUnit 5's exception handling features.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+@Test
+public void testClearStorage() throws Exception {
+    final String[][] values = generateValues();
+    loadValues(values);
+    close();
+
+    manager = openStorageManagerForClearStorageTest();
+    assertTrue(manager.exists(), "storage should exist before clearing");
+    manager.clearStorage();
+    verifyStorageCleared();
+}
+
+private void verifyStorageCleared() throws Exception {
+    assertFalse(manager.exists(), "storage should not exist after clearing");
+}
+```
+===========
+
+2.2. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 2 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testLocalLockContention() throws BackendException {
+        store[0].acquireLock(k, c1, null, tx[0][0]);
+
+        try {
+            store[0].acquireLock(k, c1, null, tx[0][1]);
+            fail("Lock contention exception not thrown");
+        } catch (BackendException e) {
+            assertTrue(e instanceof PermanentLockingException || e instanceof TemporaryLockingException);
+        }
+
+        try {
+            store[0].acquireLock(k, c1, null, tx[0][1]);
+            fail("Lock contention exception not thrown (2nd try)");
+        } catch (BackendException e) {
+            assertTrue(e instanceof PermanentLockingException || e instanceof TemporaryLockingException);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The provided test code exhibits the "Exception Handling" test smell because it uses manual `try-catch` blocks to verify that exceptions are thrown. Specifically, there are two instances where a `catch (BackendException e)` clause is used to intercept an exception and then perform assertions on it, rather than using a testing framework's built-in utility like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testLocalLockContention() throws BackendException {
+    store[0].acquireLock(k, c1, null, tx[0][0]);
+
+    BackendException e1 = assertThrows(BackendException.class, () -> {
+        store[0].acquireLock(k, c1, null, tx[0][1]);
+    });
+    assertTrue(e1 instanceof PermanentLockingException || e1 instanceof TemporaryLockingException);
+
+    BackendException e2 = assertThrows(BackendException.class, () -> {
+        store[0].acquireLock(k, c1, null, tx[0][1]);
+    });
+    assertTrue(e2 instanceof PermanentLockingException || e2 instanceof TemporaryLockingException);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 3 =====
+
+Test Code: 
+ @Test
+@Test
+    public void parseTextSuccessfully() throws IOException {
+        try (InputStream is = ResourceUtils.readToStream("testdata/prometheus.txt")) {
+            TextParser parser = new TextParser(is);
+            MetricFamily mf;
+            int mfNum = 0;
+            while ((mf = parser.parse(now)) != null) {
+                mfNum++;
+                MetricFamily expected = expectedMfs.poll();
+                assertNotNull(expected);
+                assertThat(mf).isEqualTo(expected);
+            }
+            assertThat(mfNum).isEqualTo(3);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test code does not contain any `throw` statements or `catch` clauses. While the method signature includes `throws IOException`, this is a declaration allowing the exception to propagate and fail the test, rather than an explicit `throw` statement within the method body or a manual attempt to handle the exception via a `catch` block. The `try` block used here is a try-with-resources for automatic resource management, which does not constitute the "Exception Handling" smell unless accompanied by a `catch` clause.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 4 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testIngressRoleIdentify() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream("envoy-ingress.msg"))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+            Role identify = analysis.identify(requestBuilder.getIdentifier(), Role.NONE);
+
+            Assertions.assertEquals(Role.PROXY, identify);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The test code does not contain any `throw` statements within the method body, nor does it contain any `catch` clauses. While the method signature includes a `throws IOException` declaration and utilizes a try-with-resources block for resource management, these do not meet the specific criteria of the "Exception Handling" test smell as defined.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 5 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testReadMarkerCompatibility() throws Exception {
+        Log l1 = manager.openLog("testx");
+        l1.registerReader(ReadMarker.fromIdentifierOrNow("mark"),new StoringReader(0));
+        l1.registerReader(ReadMarker.fromIdentifierOrTime("mark", Instant.now().minusMillis(100)),new StoringReader(1));
+        try {
+            l1.registerReader(ReadMarker.fromIdentifierOrNow("other"));
+            fail();
+        } catch (IllegalArgumentException ignored) {}
+        try {
+            l1.registerReader(ReadMarker.fromTime(Instant.now().minusMillis(100)));
+            fail();
+        } catch (IllegalArgumentException ignored) {}
+        l1.registerReader(ReadMarker.fromNow(), new StoringReader(2));
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method exhibits the "Exception Handling" smell because it contains multiple `catch` clauses. Specifically, it uses `try-catch` blocks combined with `fail()` to verify that an `IllegalArgumentException` is thrown, rather than using the testing framework's built-in features like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testReadMarkerCompatibility() throws Exception {
+    Log l1 = manager.openLog("testx");
+    l1.registerReader(ReadMarker.fromIdentifierOrNow("mark"), new StoringReader(0));
+    l1.registerReader(ReadMarker.fromIdentifierOrTime("mark", Instant.now().minusMillis(100)), new StoringReader(1));
+
+    assertThrows(IllegalArgumentException.class, () -> l1.registerReader(ReadMarker.fromIdentifierOrNow("other")));
+    assertThrows(IllegalArgumentException.class, () -> l1.registerReader(ReadMarker.fromTime(Instant.now().minusMillis(100))));
+
+    l1.registerReader(ReadMarker.fromNow(), new StoringReader(2));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 6 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testReservedNamesRejectedForPropertyKeys() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                tm.makePropertyKey(s);
+                fail("Property key  \"" + s + "\" must be rejected");
+            } catch (IllegalArgumentException e) {
+                log.debug("Caught expected exception", e);
+            } finally {
+                tm.commit();
+            }
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `catch` clause (`catch (IllegalArgumentException e)`), which is used to handle an expected exception manually rather than using the testing framework's built-in assertions like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testReservedNamesRejectedForPropertyKeys() {
+    for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+        JanusGraphManagement tm = graph.openManagement();
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
+                tm.makePropertyKey(s);
+            });
+        } finally {
+            tm.commit();
+        }
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 7 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testReservedNamesRejectedForEdgeLabels() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                tm.makeEdgeLabel(s);
+                fail("Edge label \"" + s + "\" must be rejected");
+            } catch (IllegalArgumentException e) {
+                log.debug("Caught expected exception", e);
+            } finally {
+                tm.commit();
+            }
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method exhibits the "Exception Handling" smell because it uses a `try-catch` block to verify that an exception is thrown, specifically containing a `catch (IllegalArgumentException e)` clause. According to the definition, using manual catch clauses instead of testing framework features (like `assertThrows`) constitutes this smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testReservedNamesRejectedForEdgeLabels() {
+    for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+        JanusGraphManagement tm = graph.openManagement();
+        try {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, 
+                () -> tm.makeEdgeLabel(s), 
+                () -> "Edge label \"" + s + "\" must be rejected");
+            log.debug("Caught expected exception", e);
+        } finally {
+            tm.commit();
+        }
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 8 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testReservedNamesRejectedForVertexLabels() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                tm.makeVertexLabel(s);
+                fail("Vertex label \"" + s + "\" must be rejected");
+            } catch (IllegalArgumentException e) {
+                log.debug("Caught expected exception", e);
+            } finally {
+                tm.commit();
+            }
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `catch` clause (`catch (IllegalArgumentException e)`), which is explicitly defined as the Exception Handling test smell. Instead of manually catching the exception to verify its occurrence, the test should use the testing framework's built-in features such as `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testReservedNamesRejectedForVertexLabels() {
+    for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+        JanusGraphManagement tm = graph.openManagement();
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, 
+                () -> tm.makeVertexLabel(s), 
+                "Vertex label \"" + s + "\" must be rejected");
+        } finally {
+            tm.commit();
+        }
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 9 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testLockException() {
+        try {
+            testBatchLoadingLocking(false);
+            fail();
+        } catch (JanusGraphException e) {
+            Throwable cause = e;
+            while (cause.getCause()!=null) cause=cause.getCause();
+            assertEquals(UnsupportedOperationException.class,cause.getClass());
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `try-catch` block with a `catch (JanusGraphException e)` clause used to verify that an exception is thrown. According to the definition provided, any test method containing a catch clause exhibits the Exception Handling test smell. This should be refactored using framework features like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testLockException() {
+    JanusGraphException e = assertThrows(JanusGraphException.class, () -> {
+        testBatchLoadingLocking(false);
+    });
+    Throwable cause = e;
+    while (cause.getCause() != null) {
+        cause = cause.getCause();
+    }
+    assertEquals(UnsupportedOperationException.class, cause.getClass());
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 10 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testClearStorage() throws Exception {
+        GraphOfTheGodsFactory.load(graph);
+        tearDown();
+        config.set(ConfigElement.getPath(GraphDatabaseConfiguration.DROP_ON_CLEAR), true);
+        final Backend backend = getBackend(config, false);
+        assertStorageExists(backend, true);
+        clearGraph(config);
+        try { backend.close(); } catch (final Exception e) { /* Most backends do not support closing after clearing */}
+        try (final Backend newBackend = getBackend(config, false)) {
+            assertStorageExists(newBackend, false);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `catch` clause within the line `try { backend.close(); } catch (final Exception e) { ... }`, which fits the definition of the Exception Handling test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testClearStorage() throws Exception {
+    GraphOfTheGodsFactory.load(graph);
+    tearDown();
+    config.set(ConfigElement.getPath(GraphDatabaseConfiguration.DROP_ON_CLEAR), true);
+    final Backend backend = getBackend(config, false);
+    assertStorageExists(backend, true);
+    clearGraph(config);
+    closeBackendQuietly(backend);
+    try (final Backend newBackend = getBackend(config, false)) {
+        assertStorageExists(newBackend, false);
+    }
+}
+
+private void closeBackendQuietly(Backend backend) {
+    try {
+        backend.close();
+    } catch (final Exception e) {
+        /* Most backends do not support closing after clearing */
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains the Exception Handling test smell because the `closeBackendQuietly` method includes a `catch` clause to manually handle an exception.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+@Test
+public void testClearStorage() throws Exception {
+    GraphOfTheGodsFactory.load(graph);
+    tearDown();
+    config.set(ConfigElement.getPath(GraphDatabaseConfiguration.DROP_ON_CLEAR), true);
+    try (final Backend backend = getBackend(config, false)) {
+        assertStorageExists(backend, true);
+        clearGraph(config);
+    }
+    try (final Backend newBackend = getBackend(config, false)) {
+        assertStorageExists(newBackend, false);
+    }
+}
+```
+===========
+
+2.2. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 11 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testSidecarRoleIdentify() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream("envoy-mesh-server-sidecar.msg"))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+            Role identify = analysis.identify(requestBuilder.getIdentifier(), Role.NONE);
+
+            Assertions.assertEquals(Role.SIDECAR, identify);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test code does not contain any `throw` statements within the method body, nor does it contain any `catch` clauses. While the method signature includes a `throws IOException` declaration and utilizes a try-with-resources block for resource management, these do not meet the specific criteria defined for the "Exception Handling" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 12 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testDuplicate() {
+        final BuildChainBuilder builder = BuildChain.builder();
+        builder.addFinal(DummyItem.class);
+        BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class);
+        stepBuilder.build();
+        stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class);
+        stepBuilder.build();
+        try {
+            builder.build();
+            fail("Expected exception");
+        } catch (ChainBuildException expected) {
+            // ok
+            assertFalse(expected.getMessage().contains("overridable"));
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method exhibits the "Exception Handling" smell because it uses a `try-catch` block to verify that an exception is thrown. Specifically, it wraps the call to `builder.build()` in a `try` block and catches `ChainBuildException` to perform assertions on the exception message, rather than using a testing framework feature like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testDuplicate() {
+    final BuildChainBuilder builder = BuildChain.builder();
+    builder.addFinal(DummyItem.class);
+    BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+        @Override
+        public void execute(final BuildContext context) {
+            context.produce(new DummyItem());
+        }
+    });
+    stepBuilder.produces(DummyItem.class);
+    stepBuilder.build();
+    stepBuilder = builder.addBuildStep(new BuildStep() {
+        @Override
+        public void execute(final BuildContext context) {
+            context.produce(new DummyItem());
+        }
+    });
+    stepBuilder.produces(DummyItem.class);
+    stepBuilder.build();
+
+    ChainBuildException expected = assertThrows(ChainBuildException.class, () -> builder.build());
+    assertFalse(expected.getMessage().contains("overridable"));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 13 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testDuplicateOverridable() {
+        final BuildChainBuilder builder = BuildChain.builder();
+        builder.addFinal(DummyItem.class);
+        BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+        stepBuilder.build();
+        stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+        stepBuilder.build();
+        try {
+            builder.build();
+            fail("Expected exception");
+        } catch (ChainBuildException expected) {
+            // ok
+            assertTrue(expected.getMessage().contains("overridable"));
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `try-catch` block used to verify that a `ChainBuildException` is thrown. According to the definition provided, the presence of a catch clause constitutes the "Exception Handling" test smell. This should be refactored using framework features like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testDuplicateOverridable() {
+    final BuildChainBuilder builder = BuildChain.builder();
+    builder.addFinal(DummyItem.class);
+    BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+        @Override
+        public void execute(final BuildContext context) {
+            context.produce(new DummyItem());
+        }
+    });
+    stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+    stepBuilder.build();
+    stepBuilder = builder.addBuildStep(new BuildStep() {
+        @Override
+        public void execute(final BuildContext context) {
+            context.produce(new DummyItem());
+        }
+    });
+    stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+    stepBuilder.build();
+
+    ChainBuildException exception = assertThrows(ChainBuildException.class, () -> builder.build());
+    assertTrue(exception.getMessage().contains("overridable"));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 14 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testHybridWebApp() throws IOException {
+        RestAssured.when().post("/oidc/userinfo-endpoint-call-count").then().body(equalTo("0"));
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient.getPage("http://localhost:8081/tenants/tenant-hybrid/api/user");
+            assertNotNull(getStateCookie(webClient, "tenant-hybrid-webapp"));
+            assertEquals("Sign in to quarkus-hybrid", page.getTitleText());
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName("username").setValueAttribute("alice");
+            loginForm.getInputByName("password").setValueAttribute("alice");
+            page = loginForm.getButtonByName("login").click();
+            assertEquals("alice:web-app", page.getBody().asNormalizedText());
+            webClient.getCookieManager().clearCookies();
+        }
+        RestAssured.when().get("/oidc/userinfo-endpoint-call-count").then().body(equalTo("1"));
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+
+The provided test code does not exhibit the "Exception Handling" test smell because it does not contain any `throw` statements within the method body nor does it contain any `catch` clauses. While the method signature includes a `throws IOException` declaration and uses a try-with-resources block, these do not meet the specific criteria of manually catching or throwing exceptions to handle them within the test logic.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 15 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testExpanderMissing() {
+        final SmallRyeConfig config = buildConfig(maps(
+                singletonMap("foo.two", "${foo.one}empty"),
+                singletonMap("foo.three", "+${foo.two}+")));
+        try {
+            config.getValue("foo.two", String.class);
+            fail("Expected exception");
+        } catch (NoSuchElementException expected) {
+            // OK
+        }
+        try {
+            config.getValue("foo.three", String.class);
+            fail("Expected exception");
+        } catch (NoSuchElementException expected) {
+            // OK
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains multiple `catch` clauses used to verify that a `NoSuchElementException` is thrown. According to the definition, the presence of a catch clause indicates the "Exception Handling" test smell. This should be refactored using framework features like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testExpanderMissing() {
+    final SmallRyeConfig config = buildConfig(maps(
+            singletonMap("foo.two", "${foo.one}empty"),
+            singletonMap("foo.three", "+${foo.two}+")));
+    assertThrows(NoSuchElementException.class, () -> config.getValue("foo.two", String.class));
+    assertThrows(NoSuchElementException.class, () -> config.getValue("foo.three", String.class));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 16 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testStackBlowOut() {
+        final SmallRyeConfig config = buildConfig(maps(
+                singletonMap("foo.blowout", "${foo.blowout}")));
+        try {
+            config.getValue("foo.blowout", String.class);
+            fail("Expected exception");
+        } catch (IllegalArgumentException expected) {
+            // OK
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `catch` clause (`catch (IllegalArgumentException expected)`), which fits the definition of the Exception Handling test smell. Instead of manually catching the exception and using `fail()`, this should be refactored to use a testing framework feature like `assertThrows`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testStackBlowOut() {
+    final SmallRyeConfig config = buildConfig(maps(
+            singletonMap("foo.blowout", "${foo.blowout}")));
+    assertThrows(IllegalArgumentException.class, () -> config.getValue("foo.blowout", String.class));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 17 =====
+
+Test Code: 
+ @Test
+@Test
+    void overriddenProfile() {
+        System.setProperty("quarkus.profile", "foo");
+        try {
+            final SmallRyeConfig config = buildConfig(
+                    "foo.one", "v1",
+                    "foo.two", "v2",
+                    "%foo.foo.three", "f1",
+                    "%prod.foo.four", "v4");
+            assertEquals("v1", config.getValue("foo.one", String.class));
+            assertEquals("v2", config.getValue("foo.two", String.class));
+            assertEquals("f1", config.getValue("foo.three", String.class));
+            assertFalse(config.getOptionalValue("foo.four", String.class).isPresent());
+        } finally {
+            System.clearProperty("quarkus.profile");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test code does not contain a `throw` statement or a `catch` clause. While it utilizes a `try-finally` block to ensure system properties are cleared, the specific criteria for the "Exception Handling" smell (presence of `throw` or `catch`) are not met.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 18 =====
+
+Test Code: 
+ @Test
+@Test
+    void overriddenProfileHigherOrdinal() {
+        System.setProperty("quarkus.profile", "foo");
+        try {
+            final SmallRyeConfig config = configBuilder()
+                    .withSources(new PropertiesConfigSource(maps("foo", "default"), "source", 1000))
+                    .withSources(new PropertiesConfigSource(maps("%foo.foo", "profile"), "source", 100))
+                    .build();
+
+            assertEquals("default", config.getRawValue("foo"));
+        } finally {
+            System.clearProperty("quarkus.profile");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided code contains a `try-finally` block to ensure system properties are cleaned up, but it does not contain a `throw` statement or a `catch` clause, which are the specific triggers for the "Exception Handling" test smell as defined.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 19 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testExposedHostWithNetwork() {
+        Testcontainers.exposeHostPorts(server.getAddress().getPort());
+        try (Network network = Network.newNetwork()) {
+            assertResponse(
+                new GenericContainer<>(tinyContainerDef()).withNetwork(network),
+                server.getAddress().getPort()
+            );
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test code does not contain any `throw` statements or `catch` clauses. While it uses a `try-with-resources` block for automatic resource management (closing the `Network` object), this is not the same as manually handling exceptions via a `catch` block to verify failure or suppress errors.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 20 =====
+
+Test Code: 
+ @Test
+@Test
+    public void shouldReportOOMAfterWait() {
+        Info info = DockerClientFactory.instance().client().infoCmd().exec();
+        // Poor man's rootless Docker detection :D
+        Assumptions.assumeThat(info.getSecurityOptions()).doesNotContain("name=rootless");
+        try (
+            GenericContainer<?> container = new GenericContainer<>(TestImages.TINY_IMAGE)
+                .withStartupCheckStrategy(new NoopStartupCheckStrategy())
+                .waitingFor(new WaitForExitedState(ContainerState::getOOMKilled))
+                .withCreateContainerCmdModifier(it -> {
+                    it
+                        .getHostConfig()
+                        .withMemory(20 * FileUtils.ONE_MB)
+                        .withMemorySwappiness(0L)
+                        .withMemorySwap(0L)
+                        .withMemoryReservation(0L)
+                        .withKernelMemory(16 * FileUtils.ONE_MB);
+                })
+                .withCommand("sh", "-c", "A='0123456789'; for i in $(seq 0 32); do A=$A$A; done; sleep 10m")
+        ) {
+            assertThatThrownBy(container::start)
+                .hasStackTraceContaining("Wait strategy failed. Container crashed with out-of-memory (OOMKilled)")
+                .hasStackTraceContaining("Nope!");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+
+The provided test code does not exhibit the "Exception Handling" smell. While there is a `try` block, it is a **try-with-resources** statement used for automatic resource management (closing the `GenericContainer`), not for catching exceptions. There are no `catch` clauses and no `throw` statements. Furthermore, the test correctly uses the testing framework's assertion feature (`assertThatThrownBy`) to verify that an exception is thrown, which is the recommended approach to avoid this smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 21 =====
+
+Test Code: 
+ @Test
+@Test
+    public void shouldReportErrorAfterWait() {
+        try (
+            GenericContainer<?> container = new GenericContainer<>(TestImages.TINY_IMAGE)
+                .withStartupCheckStrategy(new NoopStartupCheckStrategy())
+                .waitingFor(new WaitForExitedState(state -> state.getExitCode() > 0))
+                .withCommand("sh", "-c", "usleep 100; exit 123")
+        ) {
+            assertThatThrownBy(container::start)
+                .hasStackTraceContaining("Container startup failed for image " + TestImages.TINY_IMAGE)
+                .hasStackTraceContaining("Wait strategy failed. Container exited with code 123")
+                .hasStackTraceContaining("Nope!");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+
+The provided code does not exhibit the "Exception Handling" test smell. While it contains a `try` block, it is a **try-with-resources** statement used for automatic resource management (ensuring the `GenericContainer` is closed), not for handling exceptions via a `catch` clause. Furthermore, the test uses `assertThatThrownBy`, which is the recommended framework feature for asserting that an exception is thrown, rather than manually using `throw` or `catch`.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 22 =====
+
+Test Code: 
+ @Test
+@Test
+        public void testNetworkSupport() throws Exception {
+            String response = bar.execInContainer("wget", "-O", "-", "http://foo:8080").getStdout();
+            assertThat(response).as("received response").isEqualTo("yay");
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The test method does not contain a `throw` statement within its body, nor does it contain a `catch` clause. While the method signature includes `throws Exception`, this is a declaration allowing exceptions to propagate to the test runner and is not the same as an explicit `throw` statement or a `try-catch` block used for manual exception handling.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 23 =====
+
+Test Code: 
+ @Test
+@Test
+        public void testBuilder() {
+            try (Network network = Network.builder().driver("macvlan").build()) {
+                String id = network.getId();
+                assertThat(
+                    DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(id).exec().getDriver()
+                )
+                    .as("Flag is set")
+                    .isEqualTo("macvlan");
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test method uses a try-with-resources block for automatic resource management, but it does not contain a `throw` statement or a `catch` clause.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 24 =====
+
+Test Code: 
+ @Test
+@Test
+        public void testModifiers() {
+            try (
+                Network network = Network.builder().createNetworkCmdModifier(cmd -> cmd.withDriver("macvlan")).build()
+            ) {
+                String id = network.getId();
+                assertThat(
+                    DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(id).exec().getDriver()
+                )
+                    .as("Flag is set")
+                    .isEqualTo("macvlan");
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided code uses a try-with-resources block for automatic resource management, but it does not contain a `throw` statement or a `catch` clause. Therefore, it does not exhibit the Exception Handling test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 25 =====
+
+Test Code: 
+ @Test
+@Test
+        public void testReusability() {
+            try (Network network = Network.newNetwork()) {
+                String firstId = network.getId();
+                assertThat(DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(firstId).exec())
+                    .as("Network exists")
+                    .isNotNull();
+
+                network.close();
+
+                assertThat(
+                    DockerClientFactory
+                        .instance()
+                        .client()
+                        .inspectNetworkCmd()
+                        .withNetworkId(network.getId())
+                        .exec()
+                        .getId()
+                )
+                    .as("New network created")
+                    .isNotEqualTo(firstId);
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided code uses a try-with-resources block for automatic resource management, but it does not contain any `throw` statements or `catch` clauses. According to the definition provided, these are the specific requirements for the "Exception Handling" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 26 =====
+
+Test Code: 
+ @Test
+public void getLogsReturnsAllLogsToDate() {
+        try (GenericContainer<?> container = shortLivedContainer()) {
+            container.start();
+
+            final String logs = container.getLogs();
+            assertThat(logs).as("stdout and stderr are reflected in the returned logs").isEqualTo("stdout\nstderr");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The test code uses a try-with-resources statement for automatic resource management, but it does not contain a `throw` statement or a `catch` clause. Therefore, it does not exhibit the Exception Handling test smell as defined.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 27 =====
+
+Test Code: 
+ @Test
+@Test
+    public void getLogsContainsBothOutputTypes() {
+        try (GenericContainer<?> container = shortLivedContainer()) {
+            container.start();
+
+            // docsGetAllLogs {
+            final String logs = container.getLogs();
+            // }
+            assertThat(logs).as("stdout is reflected in the returned logs").contains("stdout");
+            assertThat(logs).as("stderr is reflected in the returned logs").contains("stderr");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test code uses a try-with-resources statement for resource management, but it does not contain any `throw` statements or `catch` clauses.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 28 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testEmpty() throws IOException {
+        final Array<Row> rows = Array.empty();
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.iterator()).thenReturn(rows.iterator());
+
+        final CQLColValGetter getter = new CQLColValGetter(new EntryMetaData[0]);
+        try (final CQLResultSetKeyIterator resultSetKeyIterator = new CQLResultSetKeyIterator(ALL_COLUMNS, getter, resultSet)) {
+            assertFalse(resultSetKeyIterator.hasNext());
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test method does not contain a `throw` statement within its body, nor does it contain a `catch` clause. While the method signature includes a `throws IOException` declaration and uses a try-with-resources block for resource management, neither of these constitutes the "Exception Handling" smell as defined (which specifically targets manual catching or throwing of exceptions).
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 29 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testIngressMetric() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream("envoy-ingress.msg"))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+
+            AccessLogAnalyzer.Result result = this.analysis.analysis(AccessLogAnalyzer.Result.builder().build(), requestBuilder.getIdentifier(), requestBuilder.getHttpLogs().getLogEntry(0), Role.PROXY);
+
+            Assertions.assertEquals(2, result.getMetrics().getHttpMetrics().getMetricsCount());
+
+            HTTPServiceMeshMetric incoming = result.getMetrics().getHttpMetrics().getMetrics(0);
+            Assertions.assertEquals("UNKNOWN", incoming.getSourceServiceName());
+            Assertions.assertEquals("ingress", incoming.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.server, incoming.getDetectPoint());
+
+            HTTPServiceMeshMetric outgoing = result.getMetrics().getHttpMetrics().getMetrics(1);
+            Assertions.assertEquals("ingress", outgoing.getSourceServiceName());
+            Assertions.assertEquals("productpage", outgoing.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.client, outgoing.getDetectPoint());
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided code does not contain any `throw` statements or `catch` clauses. While the method signature includes `throws IOException` and it utilizes a try-with-resources block for resource management, neither of these constitutes the specific "Exception Handling" test smell as defined (which requires an explicit throw statement or a catch block).
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.
+
+===== Test 30 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testIngress2SidecarMetric() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream("envoy-ingress2sidecar.msg"))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+
+            AccessLogAnalyzer.Result result = this.analysis.analysis(AccessLogAnalyzer.Result.builder().build(), requestBuilder.getIdentifier(), requestBuilder.getHttpLogs().getLogEntry(0), Role.SIDECAR);
+
+            Assertions.assertEquals(1, result.getMetrics().getHttpMetrics().getMetricsCount());
+
+            HTTPServiceMeshMetric incoming = result.getMetrics().getHttpMetrics().getMetrics(0);
+            Assertions.assertEquals("", incoming.getSourceServiceName());
+            Assertions.assertEquals("productpage", incoming.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.server, incoming.getDetectPoint());
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: NO
+The provided test code does not contain any `throw` statements or `catch` clauses within the method body. While the method signature includes `throws IOException`, this is a declaration allowing the exception to propagate to the testing framework, not an explicit handling mechanism (like a try-catch block) or a manual throw statement used for testing failure scenarios. The `try` block used here is a "try-with-resources" statement for automatic resource management, which does not constitute the Exception Handling smell as defined.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+Test smell not detected. Skipping refactoring.

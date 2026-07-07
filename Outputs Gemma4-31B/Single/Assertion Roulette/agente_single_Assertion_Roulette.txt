@@ -1,0 +1,1267 @@
+
+===== Test 1 =====
+
+Test Code: 
+ public void testTransform() throws IOException {
+    Map<String, Object> rawEvent = mapper.readValue(SAMPLE_CALENDAR, Map.class);
+
+    CalendarModel calendar = transformer.apply(rawEvent, context);
+
+    assertEquals("123", calendar.getId());
+    assertEquals("Calendar", calendar.getName());
+    assertEquals("Calendar", calendar.getDescription());
+  }
+1. Result: public void testTransform() throws IOException {
+    Map<String, Object> rawEvent = mapper.readValue(SAMPLE_CALENDAR, Map.class);
+
+    CalendarModel calendar = transformer.apply(rawEvent, context);
+
+    assertEquals("123", calendar.getId(), "The calendar ID should be '123'");
+    assertEquals("Calendar", calendar.getName(), "The calendar name should be 'Calendar'");
+    assertEquals("Calendar", calendar.getDescription(), "The calendar description should be 'Calendar'");
+  }
+===========
+
+
+===== Test 2 =====
+
+Test Code: 
+ @Test
+  public void parseListAddResponse() throws IOException {
+    String content =
+        "<?xml version='1.0' encoding='UTF-8'?>"
+            + "<rsp stat=\"ok\">"
+            + "<transaction id=\"123\" undoable=\"0\"/>"
+            + "<list id=\"456\" name=\"list\" deleted=\"0\" locked=\"0\" "
+            + "archived=\"0\" position=\"0\" smart=\"0\" sort_order=\"0\"/></rsp>\n";
+
+    ListAddResponse response = mapper.readValue(content, ListAddResponse.class);
+    assertThat(response.stat).isEqualTo("ok");
+    assertThat(response.list.id).isEqualTo(456);
+  }
+2. Result: ```java
+@Test
+  public void parseListAddResponse() throws IOException {
+    String content =
+        "<?xml version='1.0' encoding='UTF-8'?>"
+            + "<rsp stat=\"ok\">"
+            + "<transaction id=\"123\" undoable=\"0\"/>"
+            + "<list id=\"456\" name=\"list\" deleted=\"0\" locked=\"0\" "
+            + "archived=\"0\" position=\"0\" smart=\"0\" sort_order=\"0\"/></rsp>\n";
+
+    ListAddResponse response = mapper.readValue(content, ListAddResponse.class);
+    assertThat(response.stat).as("Check if the response status is 'ok'").isEqualTo("ok");
+    assertThat(response.list.id).as("Check if the parsed list ID is 456").isEqualTo(456);
+  }
+```
+===========
+
+
+===== Test 3 =====
+
+Test Code: 
+ @Test
+  public void testGetRequestType() {
+    AuthServiceProviderRegistry registry = mock(AuthServiceProviderRegistry.class);
+    DataTypesAction dataTypesAction = new DataTypesAction(registry, new Monitor() {
+    });
+
+    Class<GetDataTypes> actual = dataTypesAction.getRequestType();
+    assertNotEquals(actual, null);
+    assertEquals(actual, GetDataTypes.class);
+  }
+3. Result: ```java
+@Test
+  public void testGetRequestType() {
+    AuthServiceProviderRegistry registry = mock(AuthServiceProviderRegistry.class);
+    DataTypesAction dataTypesAction = new DataTypesAction(registry, new Monitor() {
+    });
+
+    Class<GetDataTypes> actual = dataTypesAction.getRequestType();
+    assertNotEquals(null, actual, "The request type should not be null");
+    assertEquals(GetDataTypes.class, actual, "The request type should be GetDataTypes.class");
+  }
+```
+===========
+
+
+===== Test 4 =====
+
+Test Code: 
+ @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerSubtypes(
+        ContinuationData.class, IntPaginationToken.class, IdOnlyContainerResource.class);
+
+    ContinuationData continuationData = new ContinuationData(new IntPaginationToken(100));
+    continuationData.addContainerResource(new IdOnlyContainerResource("123"));
+
+    String serialized = objectMapper.writeValueAsString(continuationData);
+
+    ContinuationData deserialized = objectMapper.readValue(serialized, ContinuationData.class);
+
+    assertNotNull(deserialized);
+    assertEquals(100, ((IntPaginationToken) deserialized.getPaginationData()).getStart());
+    assertEquals(
+        "123", ((IdOnlyContainerResource) deserialized.getContainerResources().get(0)).getId());
+  }
+4. Result: ```java
+  @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerSubtypes(
+        ContinuationData.class, IntPaginationToken.class, IdOnlyContainerResource.class);
+
+    ContinuationData continuationData = new ContinuationData(new IntPaginationToken(100));
+    continuationData.addContainerResource(new IdOnlyContainerResource("123"));
+
+    String serialized = objectMapper.writeValueAsString(continuationData);
+
+    ContinuationData deserialized = objectMapper.readValue(serialized, ContinuationData.class);
+
+    assertNotNull(deserialized, "Deserialized object should not be null");
+    assertEquals(100, ((IntPaginationToken) deserialized.getPaginationData()).getStart(), 
+        "Pagination token start value should match the original value");
+    assertEquals(
+        "123", ((IdOnlyContainerResource) deserialized.getContainerResources().get(0)).getId(), 
+        "Container resource ID should match the original value");
+  }
+```
+===========
+
+
+===== Test 5 =====
+
+Test Code: 
+ @Test
+  public void findTransferExtension() {
+    ImmutableList<TransferExtension> transferExtensions = ImmutableList.of(FOO_UPPER, BAR_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "FOO")).isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "foo")).isEqualTo(FOO_UPPER);
+  }
+5. Result: ```java
+@Test
+  public void findTransferExtension() {
+    ImmutableList<TransferExtension> transferExtensions = ImmutableList.of(FOO_UPPER, BAR_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "FOO"))
+        .as("Should find the correct extension for an uppercase key")
+        .isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "foo"))
+        .as("Should find the correct extension for a lowercase key")
+        .isEqualTo(FOO_UPPER);
+  }
+```
+===========
+
+
+===== Test 6 =====
+
+Test Code: 
+ @Test
+  public void findTransferExtension_mixedCasing() {
+    ImmutableList<TransferExtension> transferExtensions = ImmutableList.of(FOO_UPPER, BAR_LOWER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "FOO")).isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "foo")).isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "BAR")).isEqualTo(BAR_LOWER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "bar")).isEqualTo(BAR_LOWER);
+  }
+6. Result: ```java
+  @Test
+  public void findTransferExtension_mixedCasing() {
+    ImmutableList<TransferExtension> transferExtensions = ImmutableList.of(FOO_UPPER, BAR_LOWER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "FOO"))
+        .as("Should find FOO_UPPER when searching for 'FOO'")
+        .isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "foo"))
+        .as("Should find FOO_UPPER when searching for 'foo'")
+        .isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "BAR"))
+        .as("Should find BAR_LOWER when searching for 'BAR'")
+        .isEqualTo(BAR_LOWER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, "bar"))
+        .as("Should find BAR_LOWER when searching for 'bar'")
+        .isEqualTo(BAR_LOWER);
+  }
+```
+===========
+
+
+===== Test 7 =====
+
+Test Code: 
+ @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    String serialized =
+        objectMapper.writeValueAsString(
+            new CreateTransferJob(
+                "testSource",
+                "testDestination",
+                "https://localhost:3000/callback/testSource",
+                "https://localhost:3000/callback/testDestination",
+                PHOTOS,
+                null,
+                "cleartext"));
+
+    CreateTransferJob deserialized = objectMapper.readValue(serialized, CreateTransferJob.class);
+
+    assertEquals(deserialized.getExportService(),"testSource");
+    assertEquals(deserialized.getImportService(),"testDestination");
+    assertEquals(
+         deserialized.getExportCallbackUrl(),"https://localhost:3000/callback/testSource");
+    assertEquals(
+         deserialized.getImportCallbackUrl(),"https://localhost:3000/callback/testDestination");
+    assertEquals(PHOTOS, deserialized.getDataType());
+  }
+7. Result: ```java
+@Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    String serialized =
+        objectMapper.writeValueAsString(
+            new CreateTransferJob(
+                "testSource",
+                "testDestination",
+                "https://localhost:3000/callback/testSource",
+                "https://localhost:3000/callback/testDestination",
+                PHOTOS,
+                null,
+                "cleartext"));
+
+    CreateTransferJob deserialized = objectMapper.readValue(serialized, CreateTransferJob.class);
+
+    assertEquals("testSource", deserialized.getExportService(), "Export service should match");
+    assertEquals("testDestination", deserialized.getImportService(), "Import service should match");
+    assertEquals(
+         "https://localhost:3000/callback/testSource", 
+         deserialized.getExportCallbackUrl(), 
+         "Export callback URL should match");
+    assertEquals(
+         "https://localhost:3000/callback/testDestination", 
+         deserialized.getImportCallbackUrl(), 
+         "Import callback URL should match");
+    assertEquals(PHOTOS, deserialized.getDataType(), "Data type should match");
+  }
+```
+===========
+
+
+===== Test 8 =====
+
+Test Code: 
+ @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerSubtypes(MailContainerResource.class);
+
+    List<MailContainerModel> containers =
+        ImmutableList.of(
+            new MailContainerModel("id1", "container1"),
+            new MailContainerModel("id2", "container2"));
+
+    List<MailMessageModel> messages =
+        ImmutableList.of(
+            new MailMessageModel("foo", ImmutableList.of("1")),
+            new MailMessageModel("bar", ImmutableList.of("1", "2'")));
+
+    ContainerResource data = new MailContainerResource(containers, messages);
+
+    String serialized = objectMapper.writeValueAsString(data);
+
+    ContainerResource deserializedModel =
+        objectMapper.readValue(serialized, ContainerResource.class);
+
+    Truth.assertThat(deserializedModel).isNotNull();
+    Truth.assertThat(deserializedModel).isInstanceOf(MailContainerResource.class);
+    MailContainerResource deserialized = (MailContainerResource) deserializedModel;
+    Truth.assertThat(deserialized.getMessages()).hasSize(2);
+    Truth.assertThat(deserialized.getFolders()).hasSize(2);
+    Truth.assertThat(deserialized).isEqualTo(data);
+  }
+8. Result: ```java
+  @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerSubtypes(MailContainerResource.class);
+
+    List<MailContainerModel> containers =
+        ImmutableList.of(
+            new MailContainerModel("id1", "container1"),
+            new MailContainerModel("id2", "container2"));
+
+    List<MailMessageModel> messages =
+        ImmutableList.of(
+            new MailMessageModel("foo", ImmutableList.of("1")),
+            new MailMessageModel("bar", ImmutableList.of("1", "2'")));
+
+    ContainerResource data = new MailContainerResource(containers, messages);
+
+    String serialized = objectMapper.writeValueAsString(data);
+
+    ContainerResource deserializedModel =
+        objectMapper.readValue(serialized, ContainerResource.class);
+
+    Truth.assertThat(deserializedModel).withMessage("Deserialized model should not be null").isNotNull();
+    Truth.assertThat(deserializedModel).withMessage("Deserialized model should be an instance of MailContainerResource").isInstanceOf(MailContainerResource.class);
+    MailContainerResource deserialized = (MailContainerResource) deserializedModel;
+    Truth.assertThat(deserialized.getMessages()).withMessage("Deserialized messages list should have size 2").hasSize(2);
+    Truth.assertThat(deserialized.getFolders()).withMessage("Deserialized folders list should have size 2").hasSize(2);
+    Truth.assertThat(deserialized).withMessage("Deserialized object should be equal to the original data").isEqualTo(data);
+  }
+```
+===========
+
+
+===== Test 9 =====
+
+Test Code: 
+ @Test
+  public void verifyTransmogrifyAlbums_oddDivision() throws Exception {
+    TransmogrificationConfig config = new TransmogrificationConfig() {
+        public int getAlbumMaxSize() { return 2;}
+    };
+    List<PhotoAlbum> albums =
+        ImmutableList.of(new PhotoAlbum("id1", "albumb1", "This is a fake album"));
+
+    List<PhotoModel> photos =
+        ImmutableList.of(
+            new PhotoModel("Pic1", "http://fake.com/1.jpg", "A pic", "image/jpg", "p1", "id1",
+                false),
+            new PhotoModel("Pic3", "http://fake.com/2.jpg", "A pic", "image/jpg", "p3", "id1",
+                false),
+            new PhotoModel(
+                "Pic2", "https://fake.com/pic.png", "fine art", "image/png", "p2", "id1", false));
+
+    PhotosContainerResource data = new PhotosContainerResource(albums, photos);
+    data.transmogrify(config);
+    Truth.assertThat(data.getAlbums()).hasSize(2);
+    Truth.assertThat(data.getPhotos()).hasSize(3);
+  }
+9. Result: ```java
+@Test
+  public void verifyTransmogrifyAlbums_oddDivision() throws Exception {
+    TransmogrificationConfig config = new TransmogrificationConfig() {
+        public int getAlbumMaxSize() { return 2;}
+    };
+    List<PhotoAlbum> albums =
+        ImmutableList.of(new PhotoAlbum("id1", "albumb1", "This is a fake album"));
+
+    List<PhotoModel> photos =
+        ImmutableList.of(
+            new PhotoModel("Pic1", "http://fake.com/1.jpg", "A pic", "image/jpg", "p1", "id1",
+                false),
+            new PhotoModel("Pic3", "http://fake.com/2.jpg", "A pic", "image/jpg", "p3", "id1",
+                false),
+            new PhotoModel(
+                "Pic2", "https://fake.com/pic.png", "fine art", "image/png", "p2", "id1", false));
+
+    PhotosContainerResource data = new PhotosContainerResource(albums, photos);
+    data.transmogrify(config);
+    Truth.assertThat(data.getAlbums()).withMessage("The number of albums should be 2").hasSize(2);
+    Truth.assertThat(data.getPhotos()).withMessage("The number of photos should be 3").hasSize(3);
+  }
+```
+===========
+
+
+===== Test 10 =====
+
+Test Code: 
+ @Test
+  public void verifyTokenSecretAuthData() throws IOException {
+    final String token = "my_secret_token";
+    final String secret = "my_secret";
+    final TokenSecretAuthData authData = new TokenSecretAuthData(token, secret);
+
+    final String s = objectMapper.writeValueAsString(authData);
+    final AuthData readValue = objectMapper.readValue(s, AuthData.class);
+    assertTrue(
+        readValue instanceof TokenSecretAuthData,
+        "The read AuthData should be an instance of TokenAuthData");
+    final TokenSecretAuthData readAuthData = (TokenSecretAuthData) readValue;
+    assertEquals(token, readAuthData.getToken(), "Expect token to be the same");
+    assertEquals(secret, readAuthData.getSecret(), "Expect secret to be the same");
+  }
+10. Result: @Test
+  public void verifyTokenSecretAuthData() throws IOException {
+    final String token = "my_secret_token";
+    final String secret = "my_secret";
+    final TokenSecretAuthData authData = new TokenSecretAuthData(token, secret);
+
+    final String s = objectMapper.writeValueAsString(authData);
+    final AuthData readValue = objectMapper.readValue(s, AuthData.class);
+    assertTrue(
+        readValue instanceof TokenSecretAuthData,
+        "The read AuthData should be an instance of TokenAuthData");
+    final TokenSecretAuthData readAuthData = (TokenSecretAuthData) readValue;
+    assertEquals(token, readAuthData.getToken(), "Expect token to be the same");
+    assertEquals(secret, readAuthData.getSecret(), "Expect secret to be the same");
+  }
+===========
+
+
+===== Test 11 =====
+
+Test Code: 
+ @Test
+    public void testDisableIdsFlush() {
+        final JanusGraph graph = getInMemoryGraph(false, false, false, 2);
+        JanusGraphVertex v1 = graph.addVertex();
+        JanusGraphVertex v2 = graph.addVertex();
+        Edge e = v1.addEdge("knows", v2);
+        e.property("prop", "old");
+        graph.tx().commit();
+        assertEquals("old", graph.traversal().E().next().property("prop").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        Object id = graph.traversal().E().next().id();
+
+        // VertexIDAssigner shouldn't assign a new id if the edge is an existing one
+        e = graph.traversal().E().next();
+        e.property("prop", "new");
+        graph.tx().commit();
+        assertEquals("new", graph.traversal().E().next().property("prop").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        assertEquals(id, graph.traversal().E().next().id());
+    }
+11. Result: ```java
+@Test
+    public void testDisableIdsFlush() {
+        final JanusGraph graph = getInMemoryGraph(false, false, false, 2);
+        JanusGraphVertex v1 = graph.addVertex();
+        JanusGraphVertex v2 = graph.addVertex();
+        Edge e = v1.addEdge("knows", v2);
+        e.property("prop", "old");
+        graph.tx().commit();
+        assertEquals("old", graph.traversal().E().next().property("prop").value(), "The edge property should be 'old' after initial commit");
+        assertEquals(1, (long) graph.traversal().E().count().next(), "There should be exactly one edge in the graph");
+        Object id = graph.traversal().E().next().id();
+
+        // VertexIDAssigner shouldn't assign a new id if the edge is an existing one
+        e = graph.traversal().E().next();
+        e.property("prop", "new");
+        graph.tx().commit();
+        assertEquals("new", graph.traversal().E().next().property("prop").value(), "The edge property should be updated to 'new'");
+        assertEquals(1, (long) graph.traversal().E().count().next(), "There should still be exactly one edge after the update");
+        assertEquals(id, graph.traversal().E().next().id(), "The edge ID should remain unchanged after updating its properties");
+    }
+```
+===========
+
+
+===== Test 12 =====
+
+Test Code: 
+ @Test
+    public void testAddLogProcessor() throws BackendException, NoSuchFieldException, IllegalAccessException {
+        StandardJanusGraph graph = createGraphWithMockedInternals();
+        StandardLogProcessorFramework logProcessorFramework = new StandardLogProcessorFramework(graph);
+
+        logProcessorFramework.addLogProcessor("foo-identifier")
+            .addProcessor((tx, txId, changeState) -> {
+                // no-op processor
+            })
+            .setStartTimeNow()
+            .setProcessorIdentifier("bar-processor")
+            .build();
+
+        Field processorLogsField = logProcessorFramework.getClass().getDeclaredField("processorLogs");
+        processorLogsField.setAccessible(true);
+        Map<String, Log> processorLogs = (Map<String, Log>) processorLogsField.get(logProcessorFramework);
+
+        assertNotNull(processorLogs, "processorLogs must not be null or empty after adding a log processor");
+        assertFalse(processorLogs.isEmpty(), "processorLogs should be non-empty after adding a processor");
+    }
+12. Result: ```java
+@Test
+    public void testAddLogProcessor() throws BackendException, NoSuchFieldException, IllegalAccessException {
+        StandardJanusGraph graph = createGraphWithMockedInternals();
+        StandardLogProcessorFramework logProcessorFramework = new StandardLogProcessorFramework(graph);
+
+        logProcessorFramework.addLogProcessor("foo-identifier")
+            .addProcessor((tx, txId, changeState) -> {
+                // no-op processor
+            })
+            .setStartTimeNow()
+            .setProcessorIdentifier("bar-processor")
+            .build();
+
+        Field processorLogsField = logProcessorFramework.getClass().getDeclaredField("processorLogs");
+        processorLogsField.setAccessible(true);
+        Map<String, Log> processorLogs = (Map<String, Log>) processorLogsField.get(logProcessorFramework);
+
+        assertNotNull(processorLogs, "processorLogs must not be null or empty after adding a log processor");
+        assertFalse(processorLogs.isEmpty(), "processorLogs should be non-empty after adding a processor");
+    }
+```
+===========
+
+
+===== Test 13 =====
+
+Test Code: 
+ @Test
+    public void shouldReindexIfPropertyKeyExists() {
+        final Map<String, Object> map = new HashMap<>();
+        map.put(STORAGE_BACKEND.toStringWithoutRoot(), "inmemory");
+        final MapConfiguration config = ConfigurationUtil.loadMapConfiguration(map);
+        final StandardJanusGraph graph = new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(new CommonsConfiguration(config)));
+
+        final String propertyKeyName = "Created_Using_Template";
+        final Class dataType = Boolean.class;
+        JanusGraphManagement management = graph.openManagement();
+        management.makePropertyKey(propertyKeyName).dataType(dataType).make();
+        management.commit();
+
+        // Instantiate the ConfigurationManagementGraph Singleton
+        // This is purposefully done after a property key is created to ensure that a REDINDEX is initiated
+        new ConfigurationManagementGraph(graph);
+
+        management = graph.openManagement();
+        final JanusGraphIndex index = management.getGraphIndex("Created_Using_Template_Index");
+        final PropertyKey propertyKey = management.getPropertyKey("Created_Using_Template");
+        assertNotNull(index);
+        assertNotNull(propertyKey);
+        assertEquals(ENABLED, index.getIndexStatus(propertyKey));
+        management.commit();
+    }
+13. Result: @Test
+    public void shouldReindexIfPropertyKeyExists() {
+        final Map<String, Object> map = new HashMap<>();
+        map.put(STORAGE_BACKEND.toStringWithoutRoot(), "inmemory");
+        final MapConfiguration config = ConfigurationUtil.loadMapConfiguration(map);
+        final StandardJanusGraph graph = new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(new CommonsConfiguration(config)));
+
+        final String propertyKeyName = "Created_Using_Template";
+        final Class dataType = Boolean.class;
+        JanusGraphManagement management = graph.openManagement();
+        management.makePropertyKey(propertyKeyName).dataType(dataType).make();
+        management.commit();
+
+        // Instantiate the ConfigurationManagementGraph Singleton
+        // This is purposefully done after a property key is created to ensure that a REDINDEX is initiated
+        new ConfigurationManagementGraph(graph);
+
+        management = graph.openManagement();
+        final JanusGraphIndex index = management.getGraphIndex("Created_Using_Template_Index");
+        final PropertyKey propertyKey = management.getPropertyKey("Created_Using_Template");
+        assertNotNull(index, "The index for the property key should have been created");
+        assertNotNull(propertyKey, "The property key should exist in the graph");
+        assertEquals(ENABLED, index.getIndexStatus(propertyKey), "The index status for the property key should be ENABLED");
+        management.commit();
+    }
+===========
+
+
+===== Test 14 =====
+
+Test Code: 
+ @Test
+    public void shouldAlwaysUseACleanTx() throws ConfigurationManagementGraphNotEnabledException {
+        final StandardJanusGraph graph = (StandardJanusGraph) JanusGraphFactory.open("inmemory");
+        new ConfigurationManagementGraph(graph);
+        final ConfigurationManagementGraph configurationManagementGraph = ConfigurationManagementGraph.getInstance();
+
+        // Create a configuration
+        final Map<String, Object> map = new HashMap<>();
+        map.put(PROPERTY_GRAPH_NAME, "tx_test_graph");
+        configurationManagementGraph.createConfiguration(ConfigurationUtil.loadMapConfiguration(map));
+
+        // Get the vertex id from the new configuration
+        long vertexId = (Long) graph.traversal().V().limit(1).next().id();
+
+        // These will use a traversal to read the configurations creating a new transaction automatically
+        assertEquals(1, configurationManagementGraph.getConfigurations().size());
+
+        // Remove the configuration from outside the ConfigurationManagementGraph, this
+        // could happen from another node in a cluster.
+        JanusGraphTransaction tx = graph.newTransaction();
+        tx.getVertex(vertexId).remove();
+        tx.commit();
+
+        // If the same transaction is being reused the traversal will be resolved without hitting
+        // the store returning the wrong value.
+        assertEquals(0, configurationManagementGraph.getConfigurations().size());
+    }
+14. Result: ```java
+@Test
+    public void shouldAlwaysUseACleanTx() throws ConfigurationManagementGraphNotEnabledException {
+        final StandardJanusGraph graph = (StandardJanusGraph) JanusGraphFactory.open("inmemory");
+        new ConfigurationManagementGraph(graph);
+        final ConfigurationManagementGraph configurationManagementGraph = ConfigurationManagementGraph.getInstance();
+
+        // Create a configuration
+        final Map<String, Object> map = new HashMap<>();
+        map.put(PROPERTY_GRAPH_NAME, "tx_test_graph");
+        configurationManagementGraph.createConfiguration(ConfigurationUtil.loadMapConfiguration(map));
+
+        // Get the vertex id from the new configuration
+        long vertexId = (Long) graph.traversal().V().limit(1).next().id();
+
+        // These will use a traversal to read the configurations creating a new transaction automatically
+        assertEquals(1, configurationManagementGraph.getConfigurations().size(), "The number of configurations should be 1 after creation");
+
+        // Remove the configuration from outside the ConfigurationManagementGraph, this
+        // could happen from another node in a cluster.
+        JanusGraphTransaction tx = graph.newTransaction();
+        tx.getVertex(vertexId).remove();
+        tx.commit();
+
+        // If the same transaction is being reused the traversal will be resolved without hitting
+        // the store returning the wrong value.
+        assertEquals(0, configurationManagementGraph.getConfigurations().size(), "The number of configurations should be 0 after external deletion");
+    }
+```
+===========
+
+
+===== Test 15 =====
+
+Test Code: 
+ @Test
+    public void graphShouldBeRemovedFromCache() throws InterruptedException {
+        final JanusGraphManager jgm = new JanusGraphManager(new Settings());
+        assertNotNull(jgm);
+        assertNotNull(JanusGraphManager.getInstance());
+        assertNull(jgm.getGraph("graph1"));
+
+        final Map<String, Object> map = new HashMap<>();
+        map.put(STORAGE_BACKEND.toStringWithoutRoot(), "inmemory");
+        map.put(GRAPH_NAME.toStringWithoutRoot(), "graph1");
+        final MapConfiguration config = ConfigurationUtil.loadMapConfiguration(map);
+        final StandardJanusGraph graph = new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(new CommonsConfiguration(config)));
+        jgm.putGraph("graph1", graph);
+        assertEquals("graph1", ((StandardJanusGraph) JanusGraphManager.getInstance().getGraph("graph1")).getGraphName());
+
+        final ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
+        mgmt.evictGraphFromCache();
+        mgmt.commit();
+
+        // wait for log to be asynchronously pulled
+        Thread.sleep(10000);
+
+        assertNull(jgm.getGraph("graph1"));
+    }
+15. Result: ```java
+@Test
+    public void graphShouldBeRemovedFromCache() throws InterruptedException {
+        final JanusGraphManager jgm = new JanusGraphManager(new Settings());
+        assertNotNull(jgm, "JanusGraphManager instance should not be null");
+        assertNotNull(JanusGraphManager.getInstance(), "JanusGraphManager singleton instance should not be null");
+        assertNull(jgm.getGraph("graph1"), "Initial cache lookup for 'graph1' should return null");
+
+        final Map<String, Object> map = new HashMap<>();
+        map.put(STORAGE_BACKEND.toStringWithoutRoot(), "inmemory");
+        map.put(GRAPH_NAME.toStringWithoutRoot(), "graph1");
+        final MapConfiguration config = ConfigurationUtil.loadMapConfiguration(map);
+        final StandardJanusGraph graph = new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(new CommonsConfiguration(config)));
+        jgm.putGraph("graph1", graph);
+        assertEquals("graph1", ((StandardJanusGraph) JanusGraphManager.getInstance().getGraph("graph1")).getGraphName(), "The cached graph should have the name 'graph1'");
+
+        final ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
+        mgmt.evictGraphFromCache();
+        mgmt.commit();
+
+        // wait for log to be asynchronously pulled
+        Thread.sleep(10000);
+
+        assertNull(jgm.getGraph("graph1"), "Graph 'graph1' should be removed from cache after eviction");
+    }
+```
+===========
+
+
+===== Test 16 =====
+
+Test Code: 
+ @Test
+    public void testIsQNF() {
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)).isQNF());
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new OrJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new AndJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+    }
+16. Result: ```java
+@Test
+    public void testIsQNF() {
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)).isQNF(), "Basic predicate should be in QNF");
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new OrJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF(), "Predicate with nested OrJanusPredicate should be in QNF");
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new AndJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF(), "Predicate with nested AndJanusPredicate should be in QNF");
+    }
+```
+===========
+
+
+===== Test 17 =====
+
+Test Code: 
+ @Test
+    public void testTest() {
+        final ConnectiveJanusPredicate predicate = getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL));
+        assertTrue(predicate.test("john",Arrays.asList("jo", "john")));
+        assertEquals(predicate.isOr(), predicate.test("john",Arrays.asList("jo", "mike")));
+        assertEquals(predicate.isOr(), predicate.test("john",Arrays.asList("mi", "john")));
+        assertFalse(predicate.test("john",Arrays.asList("mi", "mike")));
+    }
+17. Result: ```java
+@Test
+    public void testTest() {
+        final ConnectiveJanusPredicate predicate = getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL));
+        assertTrue(predicate.test("john", Arrays.asList("jo", "john")), "Should return true when elements satisfy the predicate conditions");
+        assertEquals(predicate.isOr(), predicate.test("john", Arrays.asList("jo", "mike")), "Result should be consistent with isOr() for these inputs");
+        assertEquals(predicate.isOr(), predicate.test("john", Arrays.asList("mi", "john")), "Result should be consistent with isOr() for these inputs");
+        assertFalse(predicate.test("john", Arrays.asList("mi", "mike")), "Should return false when no elements satisfy the predicate conditions");
+    }
+```
+===========
+
+
+===== Test 18 =====
+
+Test Code: 
+ @Test
+    public void testIsQNF() {
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)).isQNF());
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new OrJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+        assertFalse(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new AndJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+    }
+18. Result: ```java
+    @Test
+    public void testIsQNF() {
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)).isQNF(), "Simple predicate should be in QNF");
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new OrJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF(), "Predicate containing an OR expression should be in QNF");
+        assertFalse(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new AndJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF(), "Predicate containing an AND expression should not be in QNF");
+    }
+```
+===========
+
+
+===== Test 19 =====
+
+Test Code: 
+ @Test
+    public void testMultipleKeysQuery() {
+        tx.makePropertyKey("name").dataType(String.class).make();
+        tx.addVertex("name","vertex1");
+        tx.addVertex("name","vertex2");
+        tx.addVertex("name","vertex3");
+
+        int found = Iterators.size(tx.query().has("name", Contain.IN, Collections.singletonList("vertex1")).vertices().iterator());
+        assertEquals(1, found);
+
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2")).vertices().iterator());
+        assertEquals(2, found);
+
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2", "vertex3")).vertices().iterator());
+        assertEquals(3, found);
+
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2", "vertex3", "vertex4")).vertices().iterator());
+        assertEquals(3, found);
+
+        int limit = 2;
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2", "vertex3", "vertex4")).limit(limit).vertices().iterator());
+        assertEquals(limit, found);
+    }
+19. Result: @Test
+    public void testMultipleKeysQuery() {
+        tx.makePropertyKey("name").dataType(String.class).make();
+        tx.addVertex("name","vertex1");
+        tx.addVertex("name","vertex2");
+        tx.addVertex("name","vertex3");
+
+        int found = Iterators.size(tx.query().has("name", Contain.IN, Collections.singletonList("vertex1")).vertices().iterator());
+        assertEquals(1, found, "Query with one key should return 1 vertex");
+
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2")).vertices().iterator());
+        assertEquals(2, found, "Query with two keys should return 2 vertices");
+
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2", "vertex3")).vertices().iterator());
+        assertEquals(3, found, "Query with three keys should return 3 vertices");
+
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2", "vertex3", "vertex4")).vertices().iterator());
+        assertEquals(3, found, "Query with four keys (one non-existent) should return 3 vertices");
+
+        int limit = 2;
+        found = Iterators.size(tx.query().has("name", Contain.IN, Arrays.asList("vertex1", "vertex2", "vertex3", "vertex4")).limit(limit).vertices().iterator());
+        assertEquals(limit, found, "Query with limit should return the limited number of vertices");
+    }
+===========
+
+
+===== Test 20 =====
+
+Test Code: 
+ @Test
+    public void testFuzzyMatchWithoutIndex() {
+        JanusGraphManagement mgmt = graph.openManagement();
+        PropertyKey name = mgmt.makePropertyKey("name").dataType(String.class).make();
+        mgmt.commit();
+
+        tx.addVertex().property("name", "some value");
+        tx.commit();
+
+        // Exact match
+        assertEquals(1, graph.traversal().V().has("name", Text.textFuzzy("some value")).count().next());
+        assertEquals(1, graph.traversal().V().has("name", Text.textContainsFuzzy("value")).count().next());
+
+        // One character different
+        assertEquals(1, graph.traversal().V().has("name", Text.textFuzzy("some values")).count().next());
+        assertEquals(1, graph.traversal().V().has("name", Text.textContainsFuzzy("values")).count().next());
+
+        // Two characters different
+        assertEquals(1, graph.traversal().V().has("name", Text.textFuzzy("some val")).count().next());
+        assertEquals(1, graph.traversal().V().has("name", Text.textContainsFuzzy("values!")).count().next());
+
+        // Three characters different
+        assertEquals(0, graph.traversal().V().has("name", Text.textFuzzy("some Val")).count().next());
+        assertEquals(0, graph.traversal().V().has("name", Text.textContainsFuzzy("valuable")).count().next());
+    }
+20. Result: ```java
+@Test
+    public void testFuzzyMatchWithoutIndex() {
+        JanusGraphManagement mgmt = graph.openManagement();
+        PropertyKey name = mgmt.makePropertyKey("name").dataType(String.class).make();
+        mgmt.commit();
+
+        tx.addVertex().property("name", "some value");
+        tx.commit();
+
+        // Exact match
+        assertEquals(1, graph.traversal().V().has("name", Text.textFuzzy("some value")).count().next(), "Exact match fuzzy should find 1 vertex");
+        assertEquals(1, graph.traversal().V().has("name", Text.textContainsFuzzy("value")).count().next(), "Exact match contains-fuzzy should find 1 vertex");
+
+        // One character different
+        assertEquals(1, graph.traversal().V().has("name", Text.textFuzzy("some values")).count().next(), "One character difference fuzzy should find 1 vertex");
+        assertEquals(1, graph.traversal().V().has("name", Text.textContainsFuzzy("values")).count().next(), "One character difference contains-fuzzy should find 1 vertex");
+
+        // Two characters different
+        assertEquals(1, graph.traversal().V().has("name", Text.textFuzzy("some val")).count().next(), "Two characters difference fuzzy should find 1 vertex");
+        assertEquals(1, graph.traversal().V().has("name", Text.textContainsFuzzy("values!")).count().next(), "Two characters difference contains-fuzzy should find 1 vertex");
+
+        // Three characters different
+        assertEquals(0, graph.traversal().V().has("name", Text.textFuzzy("some Val")).count().next(), "Three characters difference fuzzy should find 0 vertices");
+        assertEquals(0, graph.traversal().V().has("name", Text.textContainsFuzzy("valuable")).count().next(), "Three characters difference contains-fuzzy should find 0 vertices");
+    }
+```
+===========
+
+
+===== Test 21 =====
+
+Test Code: 
+ @Test
+    public void testObjectVerification() {
+        serialize.registerClass(2,TClass1.class, new TClass1Serializer());
+        TClass1 t1 = new TClass1(24223,0.25f);
+
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeClassAndObject(t1);
+        out.writeClassAndObject(null);
+        out.writeObject(t1,TClass1.class);
+        out.writeObject(null,TClass1.class);
+
+        //Test failure
+        for (Object o : new Object[]{new TClass2("abc",2),Calendar.getInstance(), Lists.newArrayList()}) {
+            try {
+                out.writeObjectNotNull(o);
+                fail();
+            } catch (Exception ignored) {
+
+            }
+        }
+
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        assertEquals(t1, serialize.readClassAndObject(b));
+        assertNull(serialize.readClassAndObject(b));
+        assertEquals(t1, serialize.readObject(b, TClass1.class));
+        assertNull(serialize.readObject(b, TClass1.class));
+
+        assertFalse(b.hasRemaining());
+    }
+21. Result: ```java
+@Test
+    public void testObjectVerification() {
+        serialize.registerClass(2,TClass1.class, new TClass1Serializer());
+        TClass1 t1 = new TClass1(24223,0.25f);
+
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeClassAndObject(t1);
+        out.writeClassAndObject(null);
+        out.writeObject(t1,TClass1.class);
+        out.writeObject(null,TClass1.class);
+
+        //Test failure
+        for (Object o : new Object[]{new TClass2("abc",2),Calendar.getInstance(), Lists.newArrayList()}) {
+            try {
+                out.writeObjectNotNull(o);
+                fail("Should have thrown an exception when writing unregistered object: " + o);
+            } catch (Exception ignored) {
+
+            }
+        }
+
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        assertEquals(t1, serialize.readClassAndObject(b), "First readClassAndObject should return the original t1 object");
+        assertNull(serialize.readClassAndObject(b), "Second readClassAndObject should return null");
+        assertEquals(t1, serialize.readObject(b, TClass1.class), "First readObject should return the original t1 object");
+        assertNull(serialize.readObject(b, TClass1.class), "Second readObject should return null");
+
+        assertFalse(b.hasRemaining(), "The buffer should be completely consumed after reading all objects");
+    }
+```
+===========
+
+
+===== Test 22 =====
+
+Test Code: 
+ @Test
+    public void largeWriteTest() {
+        final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; //26 chars
+        final StringBuilder str = new StringBuilder();
+        for (int i = 0; i < 100; i++) str.append(base);
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeObjectNotNull(str.toString());
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        if (printStats) log.debug(bufferStats(b));
+        assertEquals(str.toString(), serialize.readObjectNotNull(b, String.class));
+        assertFalse(b.hasRemaining());
+    }
+22. Result: ```java
+@Test
+    public void largeWriteTest() {
+        final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; //26 chars
+        final StringBuilder str = new StringBuilder();
+        for (int i = 0; i < 100; i++) str.append(base);
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeObjectNotNull(str.toString());
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        if (printStats) log.debug(bufferStats(b));
+        assertEquals(str.toString(), serialize.readObjectNotNull(b, String.class), "The read object should match the written string");
+        assertFalse(b.hasRemaining(), "Buffer should be fully consumed after reading the object");
+    }
+```
+===========
+
+
+===== Test 23 =====
+
+Test Code: 
+ @Test
+    public void enumSerializeTest() {
+        serialize.registerClass(1,TEnum.class, new TEnumSerializer());
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeObjectNotNull(TEnum.TWO);
+        out.writeObjectNotNull(TEnum.THREE);
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        if (printStats) log.debug(bufferStats(b));
+        assertEquals(TEnum.TWO, serialize.readObjectNotNull(b, TEnum.class));
+        assertEquals(TEnum.THREE, serialize.readObjectNotNull(b, TEnum.class));
+        assertFalse(b.hasRemaining());
+
+    }
+23. Result: @Test
+    public void enumSerializeTest() {
+        serialize.registerClass(1,TEnum.class, new TEnumSerializer());
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeObjectNotNull(TEnum.TWO);
+        out.writeObjectNotNull(TEnum.THREE);
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        if (printStats) log.debug(bufferStats(b));
+        assertEquals(TEnum.TWO, serialize.readObjectNotNull(b, TEnum.class), "The first read enum should be TEnum.TWO");
+        assertEquals(TEnum.THREE, serialize.readObjectNotNull(b, TEnum.class), "The second read enum should be TEnum.THREE");
+        assertFalse(b.hasRemaining(), "The buffer should have no remaining bytes after reading all objects");
+    }
+===========
+
+
+===== Test 24 =====
+
+Test Code: 
+ @Test
+    public void testSerializedOrder() {
+        serialize.registerClass(1,TClass1.class, new TClass1Serializer());
+
+        final Map<Class,Factory> sortTypes = new HashMap<>();
+        for (Map.Entry<Class,Factory> entry : TYPES.entrySet()) {
+            if (serialize.isOrderPreservingDatatype(entry.getKey()))
+                sortTypes.put(entry.getKey(),entry.getValue());
+        }
+        assertEquals(10,sortTypes.size());
+        for (int t = 0; t < 3000000; t++) {
+            DataOutput o1 = serialize.getDataOutput(64);
+            DataOutput o2 = serialize.getDataOutput(64);
+            Map.Entry<Class,Factory> type = Iterables.get(sortTypes.entrySet(),random.nextInt(sortTypes.size()));
+            Comparable c1 = (Comparable)type.getValue().newInstance();
+            Comparable c2 = (Comparable)type.getValue().newInstance();
+            o1.writeObjectByteOrder(c1,type.getKey());
+            o2.writeObjectByteOrder(c2,type.getKey());
+            StaticBuffer s1 = o1.getStaticBuffer();
+            StaticBuffer s2 = o2.getStaticBuffer();
+            assertEquals(Math.signum(c1.compareTo(c2)),Math.signum(s1.compareTo(s2)));
+            Object c1o = serialize.readObjectByteOrder(s1.asReadBuffer(),type.getKey());
+            Object c2o = serialize.readObjectByteOrder(s2.asReadBuffer(),type.getKey());
+            assertEquals(c1,c1o);
+            assertEquals(c2,c2o);
+        }
+
+
+    }
+24. Result: ```java
+@Test
+    public void testSerializedOrder() {
+        serialize.registerClass(1,TClass1.class, new TClass1Serializer());
+
+        final Map<Class,Factory> sortTypes = new HashMap<>();
+        for (Map.Entry<Class,Factory> entry : TYPES.entrySet()) {
+            if (serialize.isOrderPreservingDatatype(entry.getKey()))
+                sortTypes.put(entry.getKey(),entry.getValue());
+        }
+        assertEquals(10, sortTypes.size(), "The number of order-preserving datatypes should be 10");
+        for (int t = 0; t < 3000000; t++) {
+            DataOutput o1 = serialize.getDataOutput(64);
+            DataOutput o2 = serialize.getDataOutput(64);
+            Map.Entry<Class,Factory> type = Iterables.get(sortTypes.entrySet(),random.nextInt(sortTypes.size()));
+            Comparable c1 = (Comparable)type.getValue().newInstance();
+            Comparable c2 = (Comparable)type.getValue().newInstance();
+            o1.writeObjectByteOrder(c1,type.getKey());
+            o2.writeObjectByteOrder(c2,type.getKey());
+            StaticBuffer s1 = o1.getStaticBuffer();
+            StaticBuffer s2 = o2.getStaticBuffer();
+            assertEquals(Math.signum(c1.compareTo(c2)), Math.signum(s1.compareTo(s2)), "Serialized byte order must preserve the comparison result");
+            Object c1o = serialize.readObjectByteOrder(s1.asReadBuffer(),type.getKey());
+            Object c2o = serialize.readObjectByteOrder(s2.asReadBuffer(),type.getKey());
+            assertEquals(c1, c1o, "Deserialized object c1o should match original object c1");
+            assertEquals(c2, c2o, "Deserialized object c2o should match original object c2");
+        }
+    }
+```
+===========
+
+
+===== Test 25 =====
+
+Test Code: 
+ @Test
+    public void testMultiplicityCardinality() {
+        assertEquals(Multiplicity.MULTI,Multiplicity.convert(Cardinality.LIST));
+        assertEquals(Multiplicity.SIMPLE,Multiplicity.convert(Cardinality.SET));
+        assertEquals(Multiplicity.MANY2ONE,Multiplicity.convert(Cardinality.SINGLE));
+
+        assertEquals(Multiplicity.MULTI.getCardinality(),Cardinality.LIST);
+        assertEquals(Multiplicity.SIMPLE.getCardinality(),Cardinality.SET);
+        assertEquals(Multiplicity.MANY2ONE.getCardinality(),Cardinality.SINGLE);
+
+        assertFalse(Multiplicity.MULTI.isConstrained());
+        assertTrue(Multiplicity.SIMPLE.isConstrained());
+        assertTrue(Multiplicity.ONE2ONE.isConstrained());
+
+        assertTrue(Multiplicity.ONE2ONE.isConstrained(Direction.BOTH));
+        assertTrue(Multiplicity.SIMPLE.isConstrained(Direction.BOTH));
+
+        assertFalse(Multiplicity.MULTI.isUnique(Direction.OUT));
+        assertTrue(Multiplicity.MANY2ONE.isUnique(Direction.OUT));
+    }
+25. Result: ```java
+@Test
+    public void testMultiplicityCardinality() {
+        assertEquals(Multiplicity.MULTI, Multiplicity.convert(Cardinality.LIST), "Expected MULTI when converting Cardinality.LIST");
+        assertEquals(Multiplicity.SIMPLE, Multiplicity.convert(Cardinality.SET), "Expected SIMPLE when converting Cardinality.SET");
+        assertEquals(Multiplicity.MANY2ONE, Multiplicity.convert(Cardinality.SINGLE), "Expected MANY2ONE when converting Cardinality.SINGLE");
+
+        assertEquals(Multiplicity.MULTI.getCardinality(), Cardinality.LIST, "Multiplicity.MULTI should have cardinality LIST");
+        assertEquals(Multiplicity.SIMPLE.getCardinality(), Cardinality.SET, "Multiplicity.SIMPLE should have cardinality SET");
+        assertEquals(Multiplicity.MANY2ONE.getCardinality(), Cardinality.SINGLE, "Multiplicity.MANY2ONE should have cardinality SINGLE");
+
+        assertFalse(Multiplicity.MULTI.isConstrained(), "Multiplicity.MULTI should not be constrained");
+        assertTrue(Multiplicity.SIMPLE.isConstrained(), "Multiplicity.SIMPLE should be constrained");
+        assertTrue(Multiplicity.ONE2ONE.isConstrained(), "Multiplicity.ONE2ONE should be constrained");
+
+        assertTrue(Multiplicity.ONE2ONE.isConstrained(Direction.BOTH), "Multiplicity.ONE2ONE should be constrained in BOTH directions");
+        assertTrue(Multiplicity.SIMPLE.isConstrained(Direction.BOTH), "Multiplicity.SIMPLE should be constrained in BOTH directions");
+
+        assertFalse(Multiplicity.MULTI.isUnique(Direction.OUT), "Multiplicity.MULTI should not be unique in OUT direction");
+        assertTrue(Multiplicity.MANY2ONE.isUnique(Direction.OUT), "Multiplicity.MANY2ONE should be unique in OUT direction");
+    }
+```
+===========
+
+
+===== Test 26 =====
+
+Test Code: 
+ @Test
+    public void testOrder() {
+        assertTrue(Order.ASC.modulateNaturalOrder("A".compareTo("B"))<0);
+        assertTrue(Order.DESC.modulateNaturalOrder("A".compareTo("B"))>0);
+    }
+26. Result: @Test
+    public void testOrder() {
+        assertTrue(Order.ASC.modulateNaturalOrder("A".compareTo("B")) < 0, "Ascending order should result in a value less than zero");
+        assertTrue(Order.DESC.modulateNaturalOrder("A".compareTo("B")) > 0, "Descending order should result in a value greater than zero");
+    }
+===========
+
+
+===== Test 27 =====
+
+Test Code: 
+ @Test
+    public void shouldOptimizeFilterStep() {
+        makeSampleGraph();
+
+        // is() optimization within filter
+        assertNumStep(1, 1, g.V(sv[0]).outE("knows").filter(__.inV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).outE("knows").filter(__.otherV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).bothE("knows").filter(__.otherV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+
+        // hasId() optimization within filter
+        assertNumStep(1, 1, g.V(sv[0]).outE("knows").filter(__.inV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).outE("knows").filter(__.otherV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).bothE("knows").filter(__.otherV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+    }
+27. Result: ```java
+@Test
+    public void shouldOptimizeFilterStep() {
+        makeSampleGraph();
+
+        // is() optimization within filter
+        assertNumStep("is() optimization with inV()", 1, 1, g.V(sv[0]).outE("knows").filter(__.inV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep("is() optimization with otherV() and outE()", 1, 1, g.V(sv[0]).outE("knows").filter(__.otherV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep("is() optimization with otherV() and bothE()", 1, 1, g.V(sv[0]).bothE("knows").filter(__.otherV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+
+        // hasId() optimization within filter
+        assertNumStep("hasId() optimization with inV()", 1, 1, g.V(sv[0]).outE("knows").filter(__.inV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep("hasId() optimization with otherV() and outE()", 1, 1, g.V(sv[0]).outE("knows").filter(__.otherV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep("hasId() optimization with otherV() and bothE()", 1, 1, g.V(sv[0]).bothE("knows").filter(__.otherV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+    }
+```
+===========
+
+
+===== Test 28 =====
+
+Test Code: 
+ @Test
+    public void shouldNotFailedWithDetachedVertex() {
+        g.addV("A").property("p", "1").as("a")
+         .addV("A").property("p", "2").as("b")
+         .addE("E").from("a").to("b")
+         .iterate();
+        g.tx().commit();
+        g.withStrategies(AdjacentVertexFilterOptimizerStrategy.instance());
+
+        Vertex v1 = g.V().has("p", "1").next();
+        Vertex v2 = g.V().has("p", "2").next();
+        v1 = DetachedFactory.detach(v1, false);
+        v2 = DetachedFactory.detach(v2, false);
+
+        assertTrue(g.V(v1).bothE("E").filter(__.otherV().is(v2)).hasNext());
+        assertTrue(g.V(v1).bothE("E").filter(__.otherV().hasId(v2.id())).hasNext());
+    }
+28. Result: ```java
+@Test
+    public void shouldNotFailedWithDetachedVertex() {
+        g.addV("A").property("p", "1").as("a")
+         .addV("A").property("p", "2").as("b")
+         .addE("E").from("a").to("b")
+         .iterate();
+        g.tx().commit();
+        g.withStrategies(AdjacentVertexFilterOptimizerStrategy.instance());
+
+        Vertex v1 = g.V().has("p", "1").next();
+        Vertex v2 = g.V().has("p", "2").next();
+        v1 = DetachedFactory.detach(v1, false);
+        v2 = DetachedFactory.detach(v2, false);
+
+        assertTrue(g.V(v1).bothE("E").filter(__.otherV().is(v2)).hasNext(), "Should find edge when filtering by vertex instance");
+        assertTrue(g.V(v1).bothE("E").filter(__.otherV().hasId(v2.id())).hasNext(), "Should find edge when filtering by vertex ID");
+    }
+```
+===========
+
+
+===== Test 29 =====
+
+Test Code: 
+ @Test
+    public void shouldImportDeclaringClass() {
+        final JanusGraphGremlinPlugin plugin = JanusGraphGremlinPlugin.instance();
+        final ImportCustomizer customizer = (ImportCustomizer) plugin.getCustomizers().get()[0];
+        final Set<Class> classes = customizer.getClassImports();
+
+        for (final Method m : customizer.getMethodImports()) {
+            final Class c = m.getDeclaringClass();
+            assertTrue(classes.contains(c), "CLASS_IMPORTS is missing " + c.getCanonicalName());
+        }
+
+        for (final Enum e : customizer.getEnumImports()) {
+            final Class c = e.getDeclaringClass();
+            assertTrue(classes.contains(c), "CLASS_IMPORTS is missing " + c.getCanonicalName());
+        }
+    }
+29. Result: ```java
+@Test
+    public void shouldImportDeclaringClass() {
+        final JanusGraphGremlinPlugin plugin = JanusGraphGremlinPlugin.instance();
+        final ImportCustomizer customizer = (ImportCustomizer) plugin.getCustomizers().get()[0];
+        final Set<Class> classes = customizer.getClassImports();
+
+        for (final Method m : customizer.getMethodImports()) {
+            final Class c = m.getDeclaringClass();
+            assertTrue(classes.contains(c), "CLASS_IMPORTS is missing " + c.getCanonicalName());
+        }
+
+        for (final Enum e : customizer.getEnumImports()) {
+            final Class c = e.getDeclaringClass();
+            assertTrue(classes.contains(c), "CLASS_IMPORTS is missing " + c.getCanonicalName());
+        }
+    }
+```
+===========
+
+
+===== Test 30 =====
+
+Test Code: 
+ @Test
+    public void testBitMap() {
+        byte map = BitMap.setBitb(BitMap.createMapb(2), 4);
+        assertTrue(BitMap.readBitb(map, 2));
+        assertTrue(BitMap.readBitb(map, 4));
+        map = BitMap.unsetBitb(map, 2);
+        assertFalse(BitMap.readBitb(map, 2));
+        assertFalse(BitMap.readBitb(map, 3));
+        assertFalse(BitMap.readBitb(map, 7));
+        map = BitMap.setBitb(map, 7);
+        assertTrue(BitMap.readBitb(map, 7));
+    }
+30. Result: ```java
+@Test
+    public void testBitMap() {
+        byte map = BitMap.setBitb(BitMap.createMapb(2), 4);
+        assertTrue(BitMap.readBitb(map, 2), "Bit at position 2 should be set");
+        assertTrue(BitMap.readBitb(map, 4), "Bit at position 4 should be set");
+        map = BitMap.unsetBitb(map, 2);
+        assertFalse(BitMap.readBitb(map, 2), "Bit at position 2 should be unset");
+        assertFalse(BitMap.readBitb(map, 3), "Bit at position 3 should be unset");
+        assertFalse(BitMap.readBitb(map, 7), "Bit at position 7 should be unset");
+        map = BitMap.setBitb(map, 7);
+        assertTrue(BitMap.readBitb(map, 7), "Bit at position 7 should be set");
+    }
+```
+===========
+

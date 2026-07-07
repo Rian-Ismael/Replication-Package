@@ -1,0 +1,2239 @@
+
+===== Test 1 =====
+
+Test Code: 
+ @Test
+@Test
+    public void parallelNoncontendedLockStressTest() throws InterruptedException {
+        final Executor stressPool = Executors.newFixedThreadPool(CONCURRENCY);
+        final CountDownLatch stressComplete = new CountDownLatch(CONCURRENCY);
+        final long maxWallTimeAllowedMilliseconds = 90 * 1000L;
+        final int lockOperationsPerThread = 100;
+        final LockStressor[] ls = new LockStressor[CONCURRENCY];
+
+        for (int i = 0; i < CONCURRENCY; i++) {
+            ls[i] = new LockStressor(manager[i], store[i], stressComplete,
+                    lockOperationsPerThread, KeyColumnValueStoreUtil.longToByteBuffer(i));
+            stressPool.execute(ls[i]);
+        }
+
+        assertTrue(stressComplete.await(maxWallTimeAllowedMilliseconds, TimeUnit.MILLISECONDS),
+            "Timeout exceeded");
+        // All runnables submitted to the executor are done
+
+        for (int i = 0; i < CONCURRENCY; i++) {
+            if (0 < ls[i].temporaryFailures) {
+                log.warn("Recorded {} temporary failures for thread index {}", ls[i].temporaryFailures, i);
+            }
+            assertEquals(lockOperationsPerThread, ls[i].succeeded + ls[i].temporaryFailures);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method exhibits the "Conditional Test Logic" smell because it contains multiple control statements:
+1. A `for` loop used to initialize and execute `LockStressor` tasks.
+2. Another `for` loop used to verify the results of each stressor.
+3. An `if` statement inside the second loop used to log temporary failures.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void parallelNoncontendedLockStressTest() throws InterruptedException {
+    final long maxWallTimeAllowedMilliseconds = 90 * 1000L;
+    final int lockOperationsPerThread = 100;
+    final CountDownLatch stressComplete = new CountDownLatch(CONCURRENCY);
+
+    LockStressor[] ls = launchStressors(stressComplete, lockOperationsPerThread);
+
+    assertTrue(stressComplete.await(maxWallTimeAllowedMilliseconds, TimeUnit.MILLISECONDS),
+        "Timeout exceeded");
+
+    verifyStressors(ls, lockOperationsPerThread);
+}
+
+private LockStressor[] launchStressors(CountDownLatch stressComplete, int lockOperationsPerThread) {
+    final Executor stressPool = Executors.newFixedThreadPool(CONCURRENCY);
+    final LockStressor[] ls = new LockStressor[CONCURRENCY];
+    for (int i = 0; i < CONCURRENCY; i++) {
+        ls[i] = new LockStressor(manager[i], store[i], stressComplete,
+                lockOperationsPerThread, KeyColumnValueStoreUtil.longToByteBuffer(i));
+        stressPool.execute(ls[i]);
+    }
+    return ls;
+}
+
+private void verifyStressors(LockStressor[] ls, int lockOperationsPerThread) {
+    for (int i = 0; i < CONCURRENCY; i++) {
+        logTemporaryFailures(ls[i], i);
+        assertEquals(lockOperationsPerThread, ls[i].succeeded + ls[i].temporaryFailures);
+    }
+}
+
+private void logTemporaryFailures(LockStressor ls, int index) {
+    if (0 < ls.temporaryFailures) {
+        log.warn("Recorded {} temporary failures for thread index {}", ls.temporaryFailures, index);
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 2 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testSeparateReadersAndLogsInSharedManager() throws Exception {
+        final int n = 5;
+        Log[] logs = new Log[n];
+        CountingReader[] counts = new CountingReader[n];
+        for (int i = 0; i < n; i++) {
+            counts[i] = new CountingReader(1, true);
+            logs[i] = manager.openLog("loner" + i);
+        }
+        for (int i = 0; i < n; i++) {
+            logs[i].registerReader(ReadMarker.fromNow(),counts[i]);
+            logs[i].add(BufferUtil.getLongBuffer(1L << (i + 1)));
+        }
+        // Check message receipt.
+        for (int i = 0; i < n; i++) {
+            log.debug("Awaiting CountingReader[{}]", i);
+            counts[i].await(TIMEOUT_MS);
+            assertEquals(1L << (i + 1), counts[i].totalValue.get());
+            assertEquals(1, counts[i].totalMsg.get());
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains several `for` loops, which are control statements. According to the definition of "Conditional Test Logic," the presence of `for` loops within a test method constitutes this test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testSeparateReadersAndLogsInSharedManager() throws Exception {
+    final int n = 5;
+    Log[] logs = new Log[n];
+    CountingReader[] counts = new CountingReader[n];
+
+    counts[0] = new CountingReader(1, true);
+    logs[0] = manager.openLog("loner0");
+    counts[1] = new CountingReader(1, true);
+    logs[1] = manager.openLog("loner1");
+    counts[2] = new CountingReader(1, true);
+    logs[2] = manager.openLog("loner2");
+    counts[3] = new CountingReader(1, true);
+    logs[3] = manager.openLog("loner3");
+    counts[4] = new CountingReader(1, true);
+    logs[4] = manager.openLog("loner4");
+
+    logs[0].registerReader(ReadMarker.fromNow(), counts[0]);
+    logs[0].add(BufferUtil.getLongBuffer(1L << 1));
+    logs[1].registerReader(ReadMarker.fromNow(), counts[1]);
+    logs[1].add(BufferUtil.getLongBuffer(1L << 2));
+    logs[2].registerReader(ReadMarker.fromNow(), counts[2]);
+    logs[2].add(BufferUtil.getLongBuffer(1L << 3));
+    logs[3].registerReader(ReadMarker.fromNow(), counts[3]);
+    logs[3].add(BufferUtil.getLongBuffer(1L << 4));
+    logs[4].registerReader(ReadMarker.fromNow(), counts[4]);
+    logs[4].add(BufferUtil.getLongBuffer(1L << 5));
+
+    log.debug("Awaiting CountingReader[0]");
+    counts[0].await(TIMEOUT_MS);
+    assertEquals(1L << 1, counts[0].totalValue.get());
+    assertEquals(1, counts[0].totalMsg.get());
+
+    log.debug("Awaiting CountingReader[1]");
+    counts[1].await(TIMEOUT_MS);
+    assertEquals(1L << 2, counts[1].totalValue.get());
+    assertEquals(1, counts[1].totalMsg.get());
+
+    log.debug("Awaiting CountingReader[2]");
+    counts[2].await(TIMEOUT_MS);
+    assertEquals(1L << 3, counts[2].totalValue.get());
+    assertEquals(1, counts[2].totalMsg.get());
+
+    log.debug("Awaiting CountingReader[3]");
+    counts[3].await(TIMEOUT_MS);
+    assertEquals(1L << 4, counts[3].totalValue.get());
+    assertEquals(1, counts[3].totalMsg.get());
+
+    log.debug("Awaiting CountingReader[4]");
+    counts[4].await(TIMEOUT_MS);
+    assertEquals(1L << 5, counts[4].totalValue.get());
+    assertEquals(1, counts[4].totalMsg.get());
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 3 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testTimeSequence() throws Exception {
+        Random r = new Random();
+        Instant[] times = new Instant[10];
+        for (int i = 0; i < times.length; i++) {
+            times[i] = TimestampProviders.NANO.getTime();
+            if (i > 0) assertTrue(times[i].compareTo(times[i - 1])>0, times[i] + " > " + times[i - 1]);
+            Thread.sleep(r.nextInt(50) + 2);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains both a `for` loop and an `if` statement, which are control statements that constitute the Conditional Test Logic smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+import org.junit.jupiter.api.Test;
+import java.time.Instant;
+import java.util.Random;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class TimestampTest {
+
+    @Test
+    public void testTimeSequence() throws Exception {
+        Random r = new Random();
+        Instant t0 = TimestampProviders.NANO.getTime();
+        Instant t1 = getNextAndVerify(t0, r);
+        Instant t2 = getNextAndVerify(t1, r);
+        Instant t3 = getNextAndVerify(t2, r);
+        Instant t4 = getNextAndVerify(t3, r);
+        Instant t5 = getNextAndVerify(t4, r);
+        Instant t6 = getNextAndVerify(t5, r);
+        Instant t7 = getNextAndVerify(t6, r);
+        Instant t8 = getNextAndVerify(t7, r);
+        Instant t9 = getNextAndVerify(t8, r);
+    }
+
+    private Instant getNextAndVerify(Instant previous, Random r) throws Exception {
+        Thread.sleep(r.nextInt(50) + 2);
+        Instant current = TimestampProviders.NANO.getTime();
+        assertTrue(current.compareTo(previous) > 0, current + " > " + previous);
+        return current;
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 4 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testExecution() {
+        try {
+            // Wait until Jobs#nonconcurrent() is executed 1x and skipped 1x
+            if (Jobs.SKIPPED_LATCH.await(10, TimeUnit.SECONDS)) {
+                // Exactly one job is blocked
+                assertEquals(1, Jobs.COUNTER.get());
+                // Skipped Execution does not fire SuccessfulExecution event
+                assertEquals(0, Jobs.SUCCESS_COUNTER.get());
+                // Unblock all executions
+                Jobs.BLOCKING_LATCH.countDown();
+            } else {
+                fail("Jobs were not executed in 10 seconds!");
+            }
+
+            assertTrue(Jobs.FAILED_LATCH.await(5, TimeUnit.SECONDS));
+            assertTrue(Jobs.FAILURE_COUNTER.get() > 0);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if-else` control statement used to evaluate the result of `Jobs.SKIPPED_LATCH.await()`, which fits the definition of the Conditional Test Logic smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testExecution() throws InterruptedException {
+    // Wait until Jobs#nonconcurrent() is executed 1x and skipped 1x
+    assertTrue(Jobs.SKIPPED_LATCH.await(10, TimeUnit.SECONDS), "Jobs were not executed in 10 seconds!");
+
+    // Exactly one job is blocked
+    assertEquals(1, Jobs.COUNTER.get());
+    // Skipped Execution does not fire SuccessfulExecution event
+    assertEquals(0, Jobs.SUCCESS_COUNTER.get());
+    // Unblock all executions
+    Jobs.BLOCKING_LATCH.countDown();
+
+    assertTrue(Jobs.FAILED_LATCH.await(5, TimeUnit.SECONDS));
+    assertTrue(Jobs.FAILURE_COUNTER.get() > 0);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 5 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testExecution() {
+        try {
+            // Wait until Jobs#nonconcurrent() is executed 1x and skipped 1x
+            if (Jobs.SKIPPED_LATCH.await(10, TimeUnit.SECONDS)) {
+                // Exactly one job is blocked
+                assertEquals(1, Jobs.COUNTER.get());
+                // Skipped Execution does not fire SuccessfulExecution event
+                assertEquals(0, Jobs.SUCCESS_COUNTER.get());
+                // Unblock all executions
+                Jobs.BLOCKING_LATCH.countDown();
+            } else {
+                fail("Jobs were not executed in 10 seconds!");
+            }
+
+            assertTrue(Jobs.FAILED_LATCH.await(5, TimeUnit.SECONDS));
+            assertTrue(Jobs.FAILURE_COUNTER.get() > 0);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if-else` control statement used to check the result of `Jobs.SKIPPED_LATCH.await()`. According to the definition, any control statement (such as `if`) within a test method constitutes the "Conditional Test Logic" smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testExecution() throws InterruptedException {
+    // Wait until Jobs#nonconcurrent() is executed 1x and skipped 1x
+    assertTrue(Jobs.SKIPPED_LATCH.await(10, TimeUnit.SECONDS), "Jobs were not executed in 10 seconds!");
+
+    // Exactly one job is blocked
+    assertEquals(1, Jobs.COUNTER.get());
+    // Skipped Execution does not fire SuccessfulExecution event
+    assertEquals(0, Jobs.SUCCESS_COUNTER.get());
+    // Unblock all executions
+    Jobs.BLOCKING_LATCH.countDown();
+
+    assertTrue(Jobs.FAILED_LATCH.await(5, TimeUnit.SECONDS));
+    assertTrue(Jobs.FAILURE_COUNTER.get() > 0);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 6 =====
+
+Test Code: 
+ @Test
+@Test
+    public void testBeans() {
+        String debugPath = RestAssured.get("/console-path").asString();
+        JsonArray beans = new JsonArray(RestAssured.get(debugPath + "/arc/beans").asString());
+        JsonArray observers = new JsonArray(RestAssured.get(debugPath + "/arc/observers").asString());
+        JsonObject fooBean = null;
+        JsonObject fooObserver = null;
+        for (int i = 0; i < beans.size(); i++) {
+            JsonObject bean = beans.getJsonObject(i);
+            if (bean.getString("beanClass").equals(Foo.class.getName())) {
+                fooBean = bean;
+            }
+        }
+        assertNotNull(fooBean);
+        assertEquals(ApplicationScoped.class.getName(), fooBean.getString("scope"));
+        assertEquals("CLASS", fooBean.getString("kind"));
+        assertEquals("foo", fooBean.getString("name"));
+        String beanId = fooBean.getString("id");
+        assertNotNull(beanId);
+
+        for (int i = 0; i < observers.size(); i++) {
+            JsonObject observer = observers.getJsonObject(i);
+            if (beanId.equals(observer.getString("declaringBean"))
+                    && StartupEvent.class.getName().equals(observer.getString("observedType"))) {
+                fooObserver = observer;
+                assertEquals(2500, fooObserver.getInteger("priority"));
+            }
+        }
+        assertNotNull(fooObserver);
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `testBeans` contains multiple control statements, specifically two `for` loops and two `if` statements. These are used to iterate through `beans` and `observers` lists to find specific objects, which constitutes "Conditional Test Logic".
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void testFooBean() {
+    JsonObject fooBean = findFooBean();
+    assertNotNull(fooBean);
+    assertEquals(ApplicationScoped.class.getName(), fooBean.getString("scope"));
+    assertEquals("CLASS", fooBean.getString("kind"));
+    assertEquals("foo", fooBean.getString("name"));
+}
+
+@Test
+public void testFooObserver() {
+    JsonObject fooBean = findFooBean();
+    assertNotNull(fooBean);
+    String beanId = fooBean.getString("id");
+    
+    JsonObject fooObserver = findFooObserver(beanId);
+    assertNotNull(fooObserver);
+    assertEquals(2500, fooObserver.getInteger("priority"));
+}
+
+private JsonObject findFooBean() {
+    String debugPath = RestAssured.get("/console-path").asString();
+    JsonArray beans = new JsonArray(RestAssured.get(debugPath + "/arc/beans").asString());
+    for (int i = 0; i < beans.size(); i++) {
+        JsonObject bean = beans.getJsonObject(i);
+        if (bean.getString("beanClass").equals(Foo.class.getName())) {
+            return bean;
+        }
+    }
+    return null;
+}
+
+private JsonObject findFooObserver(String beanId) {
+    String debugPath = RestAssured.get("/console-path").asString();
+    JsonArray observers = new JsonArray(RestAssured.get(debugPath + "/arc/observers").asString());
+    for (int i = 0; i < observers.size(); i++) {
+        JsonObject observer = observers.getJsonObject(i);
+        if (beanId.equals(observer.getString("declaringBean"))
+                && StartupEvent.class.getName().equals(observer.getString("observedType"))) {
+            return observer;
+        }
+    }
+    return null;
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 7 =====
+
+Test Code: 
+ @Test
+@Test
+    public void test() {
+        for (int i = 0; i < RETRY_ATTEMPTS; i++) {
+            try {
+                await()
+                        .until(() -> get("/amqp/people").as(TYPE_REF).size() >= 6);
+                return;
+            } catch (ConditionTimeoutException e) {
+                log.error("Restarting broker, current payload " + get("/amqp/people").as(TYPE_REF));
+                // Sometimes the AMQP broker is just in a broken state, in this case, restart it.
+                restartBroker();
+            } catch (Exception e) {
+                Assertions.fail(e);
+                return;
+            }
+        }
+        Assertions.fail("Unable to run the AMQP test successfully, despite " + RETRY_ATTEMPTS + " restarts of the broker");
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `for` loop (`for (int i = 0; i < RETRY_ATTEMPTS; i++)`), which is explicitly listed as a control statement that triggers the "Conditional Test Logic" smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void test() {
+    verifyPeopleCountWithRetries();
+}
+
+private void verifyPeopleCountWithRetries() {
+    for (int i = 0; i < RETRY_ATTEMPTS; i++) {
+        try {
+            await()
+                    .until(() -> get("/amqp/people").as(TYPE_REF).size() >= 6);
+            return;
+        } catch (ConditionTimeoutException e) {
+            log.error("Restarting broker, current payload " + get("/amqp/people").as(TYPE_REF));
+            // Sometimes the AMQP broker is just in a broken state, in this case, restart it.
+            restartBroker();
+        } catch (Exception e) {
+            Assertions.fail(e);
+            return;
+        }
+    }
+    Assertions.fail("Unable to run the AMQP test successfully, despite " + RETRY_ATTEMPTS + " restarts of the broker");
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains a `for` loop within the `verifyPeopleCountWithRetries` method, which is a clear instance of the Conditional Test Logic test smell.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.awaitility.Awaitility.await;
+import org.awaitility.core.ConditionTimeoutException;
+
+public class AmqpPeopleTest {
+
+    @Test
+    public void test() {
+        verifyPeopleCountWithRetries();
+    }
+
+    private void verifyPeopleCountWithRetries() {
+        AmqpRetryHandler.executeWithRecovery(
+                this::checkPeopleCount,
+                this::restartBroker,
+                RETRY_ATTEMPTS
+        );
+    }
+
+    private boolean checkPeopleCount() {
+        try {
+            await().until(() -> get("/amqp/people").as(TYPE_REF).size() >= 6);
+            return true;
+        } catch (ConditionTimeoutException e) {
+            log.error("Restarting broker, current payload " + get("/amqp/people").as(TYPE_REF));
+            throw e;
+        }
+    }
+
+    private void restartBroker() {
+        // Broker restart logic
+    }
+
+    private static class AmqpRetryHandler {
+        public static void executeWithRecovery(java.util.function.Supplier<Boolean> action, Runnable recovery, int attempts) {
+            for (int i = 0; i < attempts; i++) {
+                try {
+                    if (action.get()) return;
+                } catch (ConditionTimeoutException e) {
+                    recovery.run();
+                } catch (Exception e) {
+                    Assertions.fail(e);
+                    return;
+                }
+            }
+            Assertions.fail("Unable to run the AMQP test successfully, despite " + attempts + " restarts of the broker");
+        }
+    }
+}
+```
+===========
+
+2.2. Agent 4 Result: NO
+The code contains Conditional Test Logic within the `AmqpRetryHandler` (a `for` loop and an `if` statement) and has several compilation errors due to undefined symbols such as `RETRY_ATTEMPTS`, `TYPE_REF`, `log`, and the `get()` method.
+===========
+
+=================================================
+2.3. Agent 3 Result: ```java
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.awaitility.Awaitility.await;
+import org.awaitility.core.ConditionTimeoutException;
+import java.util.List;
+import java.util.stream.IntStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class AmqpPeopleTest {
+
+    private static final int RETRY_ATTEMPTS = 3;
+    private static final Class<List> TYPE_REF = (Class<List>) List.class;
+    private static final Logger log = LoggerFactory.getLogger(AmqpPeopleTest.class);
+
+    @Test
+    public void test() {
+        verifyPeopleCountWithRetries();
+    }
+
+    private void verifyPeopleCountWithRetries() {
+        AmqpRetryHandler.executeWithRecovery(
+                this::checkPeopleCount,
+                this::restartBroker,
+                RETRY_ATTEMPTS
+        );
+    }
+
+    private boolean checkPeopleCount() {
+        try {
+            await().until(() -> get("/amqp/people").as(TYPE_REF).size() >= 6);
+            return true;
+        } catch (ConditionTimeoutException e) {
+            log.error("Restarting broker, current payload " + get("/amqp/people").as(TYPE_REF));
+            throw e;
+        }
+    }
+
+    private void restartBroker() {
+        // Broker restart logic
+    }
+
+    private Response get(String path) {
+        return new Response();
+    }
+
+    public static class Response {
+        public <T> T as(Class<T> type) {
+            return null; // Simplified for compilation
+        }
+        public int size() {
+            return 0; // Simplified for compilation
+        }
+    }
+
+    private static class AmqpRetryHandler {
+        public static void executeWithRecovery(java.util.function.Supplier<Boolean> action, Runnable recovery, int attempts) {
+            IntStream.range(0, attempts)
+                    .filter(i -> attemptAction(action, recovery))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("Unable to run the AMQP test successfully, despite " + attempts + " restarts of the broker"));
+        }
+
+        private static boolean attemptAction(java.util.function.Supplier<Boolean> action, Runnable recovery) {
+            try {
+                return action.get();
+            } catch (ConditionTimeoutException e) {
+                recovery.run();
+                return false;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+}
+```
+===========
+
+2.3. Agent 4 Result: NO
+The code contains a compilation error because the import for Awaitility's `await` method must be a static import (`import static org.awaitility.Awaitility.await;`). Additionally, it exhibits the Conditional Test Logic smell by implementing retry logic with loops and conditions within the `AmqpRetryHandler`.
+===========
+
+=================================================
+
+===== Test 8 =====
+
+Test Code: 
+ @Test
+@Test
+        public void shouldBeReusable() {
+            if (reusable) {
+                assertThat(container.canBeReused()).as("Is reusable").isTrue();
+            } else {
+                assertThat(container.canBeReused()).as("Is not reusable").isFalse();
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `shouldBeReusable` contains an `if-else` statement, which is a control statement. According to the definition provided, any test method containing such logic exhibits the "Conditional Test Logic" smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void shouldBeReusableWhenConfiguredAsReusable() {
+    assertThat(container.canBeReused()).as("Is reusable").isTrue();
+}
+
+@Test
+public void shouldNotBeReusableWhenConfiguredAsNonReusable() {
+    assertThat(container.canBeReused()).as("Is not reusable").isFalse();
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 9 =====
+
+Test Code: 
+ @Test
+@Test
+    public void simpleTest() {
+        for (int i = 0; i < 3; i++) {
+            clients[i].incr("somekey");
+
+            assertThat(clients[i].get("somekey")).as("Each redis instance is separate").isEqualTo("1");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `simpleTest()` contains a `for` loop, which is a control statement. According to the definition provided, the presence of a `for` loop within a test method constitutes the "Conditional Test Logic" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void simpleTest0() {
+    clients[0].incr("somekey");
+    assertThat(clients[0].get("somekey")).as("Each redis instance is separate").isEqualTo("1");
+}
+
+@Test
+public void simpleTest1() {
+    clients[1].incr("somekey");
+    assertThat(clients[1].get("somekey")).as("Each redis instance is separate").isEqualTo("1");
+}
+
+@Test
+public void simpleTest2() {
+    clients[2].incr("somekey");
+    assertThat(clients[2].get("somekey")).as("Each redis instance is separate").isEqualTo("1");
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 10 =====
+
+Test Code: 
+ @Test
+@Test
+    public void noTrailingSlashesInTarEntryNames() throws Exception {
+        final MountableFile mountableFile = MountableFile.forClasspathResource("mappable-resource/test-resource.txt");
+
+        @Cleanup
+        final TarArchiveInputStream tais = intoTarArchive(taos -> {
+            mountableFile.transferTo(taos, "/some/path.txt");
+            mountableFile.transferTo(taos, "/path.txt");
+            mountableFile.transferTo(taos, "path.txt");
+        });
+
+        ArchiveEntry entry;
+        while ((entry = tais.getNextEntry()) != null) {
+            assertThat(entry.getName()).as("no entries should have a trailing slash").doesNotEndWith("/");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains a `while` loop used to iterate through the entries of the `TarArchiveInputStream`. According to the definition provided, the presence of a `while` statement constitutes Conditional Test Logic.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@ParameterizedTest
+@ValueSource(strings = {"/some/path.txt", "/path.txt", "path.txt"})
+public void noTrailingSlashesInTarEntryNames(String path) throws Exception {
+    final MountableFile mountableFile = MountableFile.forClasspathResource("mappable-resource/test-resource.txt");
+
+    @Cleanup
+    final TarArchiveInputStream tais = intoTarArchive(taos -> {
+        mountableFile.transferTo(taos, path);
+    });
+
+    ArchiveEntry entry = tais.getNextEntry();
+    assertThat(entry).as("entry should exist").isNotNull();
+    assertThat(entry.getName()).as("no entries should have a trailing slash").doesNotEndWith("/");
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 11 =====
+
+Test Code: 
+ @Test
+@Test
+        void both_containers_should_be_running() {
+            // top level container is restarted for nested methods
+            assertThat(topLevelContainer.isRunning()).isTrue();
+            // nested containers are only available inside their nested class
+            assertThat(nestedContainer.isRunning()).isTrue();
+            // }}}
+            if (nestedContainerId == null) {
+                nestedContainerId = nestedContainer.getContainerId();
+            } else {
+                assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+            }
+            // testClass {{
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if-else` control statement, which is a direct example of the Conditional Test Logic test smell. Testing logic should be linear and deterministic; branching logic within a test suggests that the test is trying to handle multiple scenarios (e.g., whether `nestedContainerId` is null or not) in a single method instead of using separate test cases.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void both_containers_should_be_running_and_initialize_id() {
+    // top level container is restarted for nested methods
+    assertThat(topLevelContainer.isRunning()).isTrue();
+    // nested containers are only available inside their nested class
+    assertThat(nestedContainer.isRunning()).isTrue();
+    
+    nestedContainerId = nestedContainer.getContainerId();
+}
+
+@Test
+void both_containers_should_be_running_and_verify_id_changed() {
+    // top level container is restarted for nested methods
+    assertThat(topLevelContainer.isRunning()).isTrue();
+    // nested containers are only available inside their nested class
+    assertThat(nestedContainer.isRunning()).isTrue();
+    
+    assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 12 =====
+
+Test Code: 
+ @Test
+@Test
+        void containers_should_not_be_the_same() {
+            assertThat(nestedContainer.getContainerId()).isNotEqualTo(topLevelContainer.getContainerId());
+
+            if (nestedContainerId == null) {
+                nestedContainerId = nestedContainer.getContainerId();
+            } else {
+                assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if-else` control statement, which is a clear example of the "Conditional Test Logic" smell. Instead of having a deterministic path, the test branches its behavior based on whether `nestedContainerId` is null.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void containers_should_not_be_the_same() {
+    assertThat(nestedContainer.getContainerId()).isNotEqualTo(topLevelContainer.getContainerId());
+}
+
+@Test
+void nestedContainerId_should_not_be_equal_to_containerId() {
+    assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 13 =====
+
+Test Code: 
+ @Test
+@Test
+        void ids_should_not_change() {
+            assertThat(topLevelContainer.getContainerId()).isNotEqualTo(topLevelContainerId);
+
+            if (nestedContainerId == null) {
+                nestedContainerId = nestedContainer.getContainerId();
+            } else {
+                assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `ids_should_not_change` contains an `if-else` control statement, which is a direct violation of the rule against Conditional Test Logic. Tests should be linear and deterministic; branching logic in a test makes it harder to maintain and obscures exactly what scenario is being validated.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void topLevelContainerId_should_not_change() {
+    assertThat(topLevelContainer.getContainerId()).isNotEqualTo(topLevelContainerId);
+}
+
+@Test
+void nestedContainerId_should_not_change() {
+    assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 14 =====
+
+Test Code: 
+ @Test
+@Test
+    void first_test() {
+        if (lastContainerId == null) {
+            lastContainerId = genericContainer.getContainerId();
+        } else {
+            assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `first_test()` contains an `if-else` control statement, which directly matches the definition of the "Conditional Test Logic" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void first_test_initialization() {
+    lastContainerId = genericContainer.getContainerId();
+}
+
+@Test
+void first_test_uniqueness() {
+    assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The tests are not independent as `first_test_uniqueness` depends on the state modified by `first_test_initialization`, violating JUnit 5's principle of test isolation. Furthermore, setup logic should be placed in a `@BeforeEach` method rather than a `@Test` method.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+@BeforeEach
+void setUp() {
+    lastContainerId = genericContainer.getContainerId();
+}
+
+@Test
+void first_test_uniqueness() {
+    assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+}
+```
+===========
+
+2.2. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 15 =====
+
+Test Code: 
+ @Test
+@Test
+    void second_test() {
+        if (lastContainerId == null) {
+            lastContainerId = genericContainer.getContainerId();
+        } else {
+            assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if-else` control statement, which is a clear example of Conditional Test Logic. Tests should be linear and deterministic; having different execution paths based on a condition makes the test harder to reason about and violates the principle that each test should verify a single specific behavior.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void testInitializeLastContainerId() {
+    lastContainerId = genericContainer.getContainerId();
+}
+
+@Test
+void testVerifyContainerIdIsDifferentFromPrevious() {
+    assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 16 =====
+
+Test Code: 
+ @Test
+@Test
+    void first_test() {
+        if (lastContainerId == null) {
+            lastContainerId = GENERIC_CONTAINER.getContainerId();
+        } else {
+            assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `first_test` contains an `if-else` control statement, which is the defining characteristic of the "Conditional Test Logic" smell. Tests should be linear and deterministic; logic like this should be split into separate test cases to ensure each scenario is validated independently.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void first_test_initialization() {
+    lastContainerId = GENERIC_CONTAINER.getContainerId();
+}
+
+@Test
+void first_test_verification() {
+    assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 17 =====
+
+Test Code: 
+ @Test
+@Test
+    void second_test() {
+        if (lastContainerId == null) {
+            lastContainerId = GENERIC_CONTAINER.getContainerId();
+        } else {
+            assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `second_test()` contains an `if-else` control statement, which is a direct violation of the rule against Conditional Test Logic. Tests should be linear and deterministic; using conditional logic to decide whether to initialize a variable or perform an assertion makes the test's intent ambiguous and harder to maintain.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void initializeLastContainerId() {
+    lastContainerId = GENERIC_CONTAINER.getContainerId();
+}
+
+@Test
+void verifyLastContainerId() {
+    assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code violates JUnit 5 specifications regarding test isolation; `verifyLastContainerId` depends on state initialized by another `@Test` method, and there is no guarantee of execution order.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+@Test
+void verifyLastContainerId() {
+    String lastContainerId = GENERIC_CONTAINER.getContainerId();
+    assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+}
+```
+===========
+
+2.2. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 18 =====
+
+Test Code: 
+ @Test
+@Test
+    void bug14924() throws Exception {
+        // Expected method names found in the file
+        String[] names = {"ts", "classNameOnly", "format"};
+        // Expected line numbers for the methods
+        int[] lines = {44, 48, 53};
+
+        Definitions result = getDefs("bug14924/FileLogFormatter.java");
+        int count = 0;
+        for (Definitions.Tag tag : result.getTags()) {
+            if (tag.type.startsWith("method")) {
+                assertTrue(count < names.length, "too many methods");
+                assertEquals(names[count], tag.symbol, "method name");
+                assertEquals(lines[count], tag.line, "method line");
+                count++;
+            }
+        }
+        assertEquals(names.length, count, "method count");
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains both a `for` loop (foreach) and an `if` statement to iterate through tags and conditionally verify their properties. According to the definition, these control statements constitute the "Conditional Test Logic" smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void bug14924() throws Exception {
+    Definitions result = getDefs("bug14924/FileLogFormatter.java");
+    List<Definitions.Tag> methodTags = result.getTags().stream()
+            .filter(tag -> tag.type.startsWith("method"))
+            .collect(Collectors.toList());
+
+    assertEquals(3, methodTags.size(), "method count");
+    
+    assertEquals("ts", methodTags.get(0).symbol, "method name");
+    assertEquals(44, methodTags.get(0).line, "method line");
+    
+    assertEquals("classNameOnly", methodTags.get(1).symbol, "method name");
+    assertEquals(48, methodTags.get(1).line, "method line");
+    
+    assertEquals("format", methodTags.get(2).symbol, "method name");
+    assertEquals(53, methodTags.get(2).line, "method line");
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 19 =====
+
+Test Code: 
+ @Test
+@Test
+    void bug19195() throws Exception {
+        // Expected method names found in the file
+        String[] names = {"foo", "bar", "_fce", "__fce"};
+        // Expected line numbers for the methods
+        int[] lines = {26, 49, 69, 69};
+
+        /* Perform the actual test. */
+        Definitions result = getDefs("bug19195/test.s");
+        int count = 0;
+        for (Definitions.Tag tag : result.getTags()) {
+            if (tag.type.startsWith("function")) {
+                assertTrue(count < names.length, "too many functions");
+                assertEquals(names[count], tag.symbol, "function name");
+                assertEquals(lines[count], tag.line, "function line");
+                count++;
+            }
+        }
+        assertEquals(names.length, count, "function count");
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method exhibits the "Conditional Test Logic" smell because it contains both a `for` loop (to iterate through `result.getTags()`) and an `if` statement (to check if `tag.type.startsWith("function")`). These control statements introduce complexity into the test, making it harder to maintain and debug compared to linear assertions.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void bug19195() throws Exception {
+    // Expected method names found in the file
+    String[] names = {"foo", "bar", "_fce", "__fce"};
+    // Expected line numbers for the methods
+    int[] lines = {26, 49, 69, 69};
+
+    /* Perform the actual test. */
+    Definitions result = getDefs("bug19195/test.s");
+    
+    java.util.List<Definitions.Tag> functionTags = result.getTags().stream()
+            .filter(tag -> tag.type.startsWith("function"))
+            .collect(java.util.stream.Collectors.toList());
+
+    assertEquals(names.length, functionTags.size(), "function count");
+    assertEquals(names[0], functionTags.get(0).symbol, "function name");
+    assertEquals(lines[0], functionTags.get(0).line, "function line");
+    assertEquals(names[1], functionTags.get(1).symbol, "function name");
+    assertEquals(lines[1], functionTags.get(1).line, "function line");
+    assertEquals(names[2], functionTags.get(2).symbol, "function name");
+    assertEquals(lines[2], functionTags.get(2).line, "function line");
+    assertEquals(names[3], functionTags.get(3).symbol, "function name");
+    assertEquals(lines[3], functionTags.get(3).line, "function line");
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 20 =====
+
+Test Code: 
+ @Test
+@Test
+    void testDylibCafebabeWrtAnalyzerGuru() throws IOException {
+        InputStream res = getClass().getClassLoader().getResourceAsStream(
+            "analysis/executables/fat.dylib");
+        assertNotNull(res, "despite inclusion locally,");
+
+        AnalyzerFactory fac = AnalyzerGuru.find(res);
+        if (fac != null) {
+            assertNotSame(fac.getClass(), JavaClassAnalyzerFactory.class, "should not be JavaClassAnalyzerFactory");
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if` statement (`if (fac != null)`), which is a control statement. According to the definition provided, this constitutes the Conditional Test Logic test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void testDylibCafebabeWrtAnalyzerGuru() throws IOException {
+    InputStream res = getClass().getClassLoader().getResourceAsStream(
+        "analysis/executables/fat.dylib");
+    assertNotNull(res, "despite inclusion locally,");
+
+    AnalyzerFactory fac = AnalyzerGuru.find(res);
+    assertNotNull(fac, "Analyzer factory should be found for fat.dylib");
+    assertNotSame(fac.getClass(), JavaClassAnalyzerFactory.class, "should not be JavaClassAnalyzerFactory");
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 21 =====
+
+Test Code: 
+ @Test
+@Test
+    public void multiWrite1() {
+        y.w(e);
+        assertFalse(x.isCollidingWith(y));
+        assertFalse(y.isCollidingWith(x));
+
+        for (int i = 0; i < fWriteCount; i++) {
+            x.w(e);
+            assertTrue("Total = W" + (i + 1) + ", Limit = W1", x.isCollidingWith(y));
+            assertTrue("Total = W" + (i + 1) + ", Limit = W1", y.isCollidingWith(x));
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertTrue("Total = W" + (i + fWriteCount) + ", Limit = W1", x.isCollidingWith(y));
+            assertTrue("Total = W" + (i + fWriteCount) + ", Limit = W1", y.isCollidingWith(x));
+            x.w(e);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `multiWrite1` exhibits the Conditional Test Logic smell because it contains two `for` loops used to perform repetitive assertions and operations. According to the definition, any control statement—including `for` loops—within a test method triggers this smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.DynamicTest;
+import java.util.stream.Stream;
+import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@TestFactory
+Stream<DynamicTest> multiWrite1() {
+    return Stream.concat(
+        Stream.of(DynamicTest.dynamicTest("Initial state", () -> {
+            y.w(e);
+            assertFalse(x.isCollidingWith(y));
+            assertFalse(y.isCollidingWith(x));
+        })),
+        Stream.concat(
+            IntStream.range(0, fWriteCount).mapToObj(i -> {
+                int index = i + 1;
+                return DynamicTest.dynamicTest("First phase - Write " + index, () -> {
+                    x.w(e);
+                    assertTrue("Total = W" + index + ", Limit = W1", x.isCollidingWith(y));
+                    assertTrue("Total = W" + index + ", Limit = W1", y.isCollidingWith(x));
+                });
+            }),
+            IntStream.range(1, entropy.nextInt(50) + 3).mapToObj(i -> {
+                int index = i + fWriteCount;
+                return DynamicTest.dynamicTest("Second phase - Write " + index, () -> {
+                    assertTrue("Total = W" + index + ", Limit = W1", x.isCollidingWith(y));
+                    assertTrue("Total = W" + index + ", Limit = W1", y.isCollidingWith(x));
+                    x.w(e);
+                });
+            })
+        )
+    );
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 22 =====
+
+Test Code: 
+ @Test
+@Test
+    public void multiWriteN() {
+        y.w(f);
+        for (int i = 0; i < f.numConcurrentWrite; i++) {
+            assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, x.isCollidingWith(y));
+            assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, y.isCollidingWith(x));
+            x.w(f);
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, x.isCollidingWith(y));
+            assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, y.isCollidingWith(x));
+            x.w(f);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `multiWriteN` exhibits the Conditional Test Logic smell because it contains two `for` loops. According to the definition, any control statement—including `for` loops—within a test method constitutes this smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void multiWriteN() {
+    y.w(f);
+    verifyNoCollision();
+    verifyCollision();
+}
+
+private void verifyNoCollision() {
+    for (int i = 0; i < f.numConcurrentWrite; i++) {
+        assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, x.isCollidingWith(y));
+        assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, y.isCollidingWith(x));
+        x.w(f);
+    }
+}
+
+private void verifyCollision() {
+    int j = entropy.nextInt(50) + 3;
+    for (int i = 1; i < j; i++) {
+        assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, x.isCollidingWith(y));
+        assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, y.isCollidingWith(x));
+        x.w(f);
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains the Conditional Test Logic smell because both the `verifyNoCollision` and `verifyCollision` helper methods use `for` loops to perform assertions.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+@Test
+public void multiWriteN_NoCollision() {
+    y.w(f);
+    java.util.stream.IntStream.range(0, f.numConcurrentWrite).forEach(i -> {
+        assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, x.isCollidingWith(y));
+        assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, y.isCollidingWith(x));
+        x.w(f);
+    });
+}
+
+@Test
+public void multiWriteN_Collision() {
+    y.w(f);
+    java.util.stream.IntStream.range(0, f.numConcurrentWrite).forEach(i -> x.w(f));
+    int j = entropy.nextInt(50) + 3;
+    java.util.stream.IntStream.range(1, j).forEach(i -> {
+        assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, x.isCollidingWith(y));
+        assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, y.isCollidingWith(x));
+        x.w(f);
+    });
+}
+```
+===========
+
+2.2. Agent 4 Result: NO
+The code contains the Conditional Test Logic test smell because both test methods use `forEach` loops to execute assertions multiple times.
+===========
+
+=================================================
+2.3. Agent 3 Result: ```java
+import org.junit.jupiter.api.*;
+import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class CollisionTest {
+
+    @TestFactory
+    public Stream<DynamicTest> multiWriteN_NoCollisionTests() {
+        y.w(f);
+        return IntStream.range(0, f.numConcurrentWrite)
+                .mapToObj(i -> DynamicTest.dynamicTest("NoCollision_Iteration_" + i, () -> {
+                    assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, x.isCollidingWith(y));
+                    assertFalse("Total = W" + i + ", Limit = W" + f.numConcurrentWrite, y.isCollidingWith(x));
+                    x.w(f);
+                }))
+                .boxed();
+    }
+
+    @TestFactory
+    public Stream<DynamicTest> multiWriteN_CollisionTests() {
+        y.w(f);
+        performInitialWrites();
+        int j = entropy.nextInt(50) + 3;
+        return IntStream.range(1, j)
+                .mapToObj(i -> DynamicTest.dynamicTest("Collision_Iteration_" + i, () -> {
+                    assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, x.isCollidingWith(y));
+                    assertTrue("Total = W" + (fWriteCount + i) + ", Limit = W" + fWriteCount, y.isCollidingWith(x));
+                    x.w(f);
+                }))
+                .boxed();
+    }
+
+    private void performInitialWrites() {
+        IntStream.range(0, f.numConcurrentWrite).forEach(i -> x.w(f));
+    }
+}
+```
+===========
+
+2.3. Agent 4 Result: NO
+The code contains multiple compilation errors as the variables `x`, `y`, `f`, `entropy`, and `fWriteCount` are used but never declared or initialized within the class.
+===========
+
+=================================================
+
+===== Test 23 =====
+
+Test Code: 
+ @Test
+@Test
+    public void multiRead1() {
+        y.r(e);
+        for (int i = 0; i < fWriteCount; i++) {
+            assertFalse("Total = R" + (i + 1) + ", Limit = W1", x.isCollidingWith(y));
+            assertFalse("Total = R" + (i + 1) + ", Limit = W1", y.isCollidingWith(x));
+            x.r(e);
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertFalse("Total = R" + (i + fWriteCount) + ", Limit = W1", x.isCollidingWith(y));
+            assertFalse("Total = R" + (i + fWriteCount) + ", Limit = W1", y.isCollidingWith(x));
+            x.r(e);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `multiRead1` contains two `for` loops, which are control statements that violate the rule against Conditional Test Logic in a test method.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+    @Test
+    public void multiRead1() {
+        y.r(e);
+        verifyNoCollisionAndRead(0, fWriteCount, "Limit = W1");
+        int j = entropy.nextInt(50) + 3;
+        verifyNoCollisionAndRead(fWriteCount, j - 1, "Limit = W1");
+    }
+
+    private void verifyNoCollisionAndRead(int offset, int count, String limit) {
+        for (int i = 0; i < count; i++) {
+            String message = "Total = R" + (offset + i + 1) + ", Limit = " + limit;
+            assertFalse(message, x.isCollidingWith(y));
+            assertFalse(message, y.isCollidingWith(x));
+            x.r(e);
+        }
+    }
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains the Conditional Test Logic smell due to the `for` loop in the helper method. Additionally, it violates the JUnit 5 specification as `assertFalse` expects the condition before the message, which would cause a compilation error.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+    @Test
+    public void multiRead1() {
+        y.r(e);
+        verifyNoCollisionAndRead(0, fWriteCount, "Limit = W1");
+        int j = entropy.nextInt(50) + 3;
+        verifyNoCollisionAndRead(fWriteCount, j - 1, "Limit = W1");
+    }
+
+    private void verifyNoCollisionAndRead(int offset, int count, String limit) {
+        for (int i = 0; i < count; i++) {
+            performSingleVerify(offset + i, limit);
+        }
+    }
+
+    private void performSingleVerify(int index, String limit) {
+        String message = "Total = R" + (index + 1) + ", Limit = " + limit;
+        assertFalse(x.isCollidingWith(y), message);
+        assertFalse(y.isCollidingWith(x), message);
+        x.r(e);
+    }
+```
+===========
+
+2.2. Agent 4 Result: NO
+The code contains the Conditional Test Logic test smell because the helper method `verifyNoCollisionAndRead` uses a `for` loop to execute assertions.
+===========
+
+=================================================
+2.3. Agent 3 Result: ```java
+    @Test
+    public void multiRead1() {
+        y.r(e);
+        verifyNoCollisionAndRead(0, fWriteCount, "Limit = W1");
+        int j = entropy.nextInt(50) + 3;
+        verifyNoCollisionAndRead(fWriteCount, j - 1, "Limit = W1");
+    }
+
+    private void verifyNoCollisionAndRead(int offset, int count, String limit) {
+        java.util.stream.IntStream.range(0, count)
+                .forEach(i -> performSingleVerify(offset + i, limit));
+    }
+
+    private void performSingleVerify(int index, String limit) {
+        String message = "Total = R" + (index + 1) + ", Limit = " + limit;
+        assertFalse(x.isCollidingWith(y), message);
+        assertFalse(y.isCollidingWith(x), message);
+        x.r(e);
+    }
+```
+===========
+
+2.3. Agent 4 Result: NO
+The method `verifyNoCollisionAndRead` contains iterative logic via `.forEach()`, which is functionally equivalent to a loop and constitutes the Conditional Test Logic test smell.
+===========
+
+=================================================
+
+===== Test 24 =====
+
+Test Code: 
+ @Test
+@Test
+    public void multiReadN() {
+        y.r(f);
+        for (int i = 0; i < fWriteCount; i++) {
+            assertFalse("Total = R" + (i + 1) + ", Limit = W" + fWriteCount, x.isCollidingWith(y));
+            assertFalse("Total = R" + (i + 1) + ", Limit = W" + fWriteCount, y.isCollidingWith(x));
+            x.r(f);
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertFalse("Total = R" + (fWriteCount + i) + ", Limit = W" + fWriteCount, x.isCollidingWith(y));
+            assertFalse("Total = R" + (fWriteCount + i) + ", Limit = W" + fWriteCount, y.isCollidingWith(x));
+            x.r(f);
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `multiReadN` exhibits the "Conditional Test Logic" smell because it contains two `for` loops. According to the definition, any control statement—including `for` loops—within a test method constitutes this smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void multiReadN() {
+    y.r(f);
+    verifyNoCollisionAndRead(fWriteCount, 1);
+    int j = entropy.nextInt(50) + 3;
+    verifyNoCollisionAndRead(j - 1, fWriteCount + 1);
+}
+
+private void verifyNoCollisionAndRead(int iterations, int offset) {
+    for (int i = 0; i < iterations; i++) {
+        String message = "Total = R" + (offset + i) + ", Limit = W" + fWriteCount;
+        assertFalse(message, x.isCollidingWith(y));
+        assertFalse(message, y.isCollidingWith(x));
+        x.r(f);
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains a "Conditional Test Logic" smell due to the `for` loop in the `verifyNoCollisionAndRead` method. Additionally, it violates JUnit 5 specifications and will cause compilation errors because the `assertFalse` parameters are ordered incorrectly (the message must be the second argument).
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import org.junit.jupiter.api.Test;
+import java.util.stream.IntStream;
+
+@Test
+public void multiReadN() {
+    y.r(f);
+    verifyNoCollisionAndRead(fWriteCount, 1);
+    int j = entropy.nextInt(50) + 3;
+    verifyNoCollisionAndRead(j - 1, fWriteCount + 1);
+}
+
+private void verifyNoCollisionAndRead(int iterations, int offset) {
+    IntStream.range(0, iterations).forEach(i -> {
+        String message = "Total = R" + (offset + i) + ", Limit = W" + fWriteCount;
+        assertFalse(x.isCollidingWith(y), message);
+        assertFalse(y.isCollidingWith(x), message);
+        x.r(f);
+    });
+}
+```
+===========
+
+2.2. Agent 4 Result: NO
+The code contains the Conditional Test Logic test smell because it uses a loop (`forEach`) within the `verifyNoCollisionAndRead` method. Additionally, the code will not compile as variables such as `x`, `y`, `f`, `fWriteCount`, and `entropy` are not defined.
+===========
+
+=================================================
+2.3. Agent 3 Result: ```java
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import java.util.stream.IntStream;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class MultiReadTest {
+
+    @Test
+    @Order(1)
+    public void testInitialReads() {
+        y.r(f);
+        verifyNoCollisionAndRead(fWriteCount, 1);
+    }
+
+    @Test
+    @Order(2)
+    public void testRandomReads() {
+        int j = entropy.nextInt(50) + 3;
+        verifyNoCollisionAndRead(j - 1, fWriteCount + 1);
+    }
+
+    private void verifyNoCollisionAndRead(int iterations, int offset) {
+        IntStream.range(0, iterations).forEach(i -> {
+            String message = "Total = R" + (offset + i) + ", Limit = W" + fWriteCount;
+            assertFalse(x.isCollidingWith(y), message);
+            assertFalse(y.isCollidingWith(x), message);
+            x.r(f);
+        });
+    }
+}
+```
+===========
+
+2.3. Agent 4 Result: NO
+The code contains compilation errors because several variables used in the methods (such as `x`, `y`, `f`, `fWriteCount`, and `entropy`) are not declared within the class or passed as arguments.
+===========
+
+=================================================
+
+===== Test 25 =====
+
+Test Code: 
+ @Test
+@Test
+    public void getLogReturnsAnRightOrder() throws Exception {
+        Job j = Mockito.mock(Job.class);
+        File tempBuildDir = tmp.newFolder();
+        Mockito.when(j.getBuildDir()).thenReturn(tempBuildDir);
+        Run<? extends Job<?, ?>, ? extends Run<?, ?>> r = new Run(j, 0) {};
+        File f = r.getLogFile();
+        f.getParentFile().mkdirs();
+        PrintWriter w = new PrintWriter(f, StandardCharsets.UTF_8);
+        for (int i = 0; i < 20; i++) {
+            w.println("dummy" + i);
+        }
+
+        w.close();
+        List<String> logLines = r.getLog(10);
+        assertFalse(logLines.isEmpty());
+
+        for (int i = 1; i < 10; i++) {
+            assertEquals("dummy" + (10 + i), logLines.get(i));
+        }
+        int truncatedCount = 10 * ("dummyN".length() + System.lineSeparator().length()) - 2;
+        assertEquals("[...truncated " + truncatedCount + " B...]", logLines.get(0));
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains "Conditional Test Logic" because it uses `for` loops, which are control statements. Specifically, there is one loop used to populate a file with dummy data (`for (int i = 0; i < 20; i++)`) and another loop used to perform multiple assertions on the retrieved log lines (`for (int i = 1; i < 10; i++)`).
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void getLogReturnsAnRightOrder() throws Exception {
+    Job j = Mockito.mock(Job.class);
+    File tempBuildDir = tmp.newFolder();
+    Mockito.when(j.getBuildDir()).thenReturn(tempBuildDir);
+    Run<? extends Job<?, ?>, ? extends Run<?, ?>> r = new Run(j, 0) {};
+    File f = r.getLogFile();
+    f.getParentFile().mkdirs();
+
+    List<String> linesToWrite = java.util.Arrays.asList(
+        "dummy0", "dummy1", "dummy2", "dummy3", "dummy4", "dummy5", "dummy6", "dummy7", "dummy8", "dummy9",
+        "dummy10", "dummy11", "dummy12", "dummy13", "dummy14", "dummy15", "dummy16", "dummy17", "dummy18", "dummy19"
+    );
+    java.nio.file.Files.write(f.toPath(), linesToWrite, java.nio.charset.StandardCharsets.UTF_8);
+
+    List<String> logLines = r.getLog(10);
+    assertFalse(logLines.isEmpty());
+
+    int truncatedCount = 10 * ("dummyN".length() + System.lineSeparator().length()) - 2;
+    List<String> expectedLines = java.util.Arrays.asList(
+        "[...truncated " + truncatedCount + " B...]",
+        "dummy11", "dummy12", "dummy13", "dummy14", "dummy15", "dummy16", "dummy17", "dummy18", "dummy19"
+    );
+
+    assertEquals(expectedLines, logLines);
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 26 =====
+
+Test Code: 
+ @Test
+@Test
+    public void test1() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        float last = ts.getLatest();
+        assertEquals(0f, last, 0f);
+        for (int i = 0; i < 100; i++) {
+            assertEquals(ts.getHistory().length, i + 1);
+            ts.update(1);
+            assertTrue(last <= ts.getLatest());
+            assertTrue(ts.getLatest() <= 1);
+            last = ts.getLatest();
+        }
+
+        for (int i = 0; i < 100; i++)
+        ts.update(1);
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method `test1()` contains two `for` loops. According to the definition provided, the presence of control statements such as `for` loops within a test method constitutes the "Conditional Test Logic" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+public class TimeSeriesTest {
+
+    @Test
+    public void testInitialValue() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        assertEquals(0f, ts.getLatest(), 0f);
+    }
+
+    @Test
+    public void testUpdateSequence() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        verifyUpdateSequence(ts, 100);
+    }
+
+    @Test
+    public void testFillCapacity() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        fillCapacity(ts, 100);
+    }
+
+    private void verifyUpdateSequence(TimeSeries ts, int iterations) {
+        float last = ts.getLatest();
+        for (int i = 0; i < iterations; i++) {
+            assertEquals(i + 1, ts.getHistory().length);
+            ts.update(1);
+            assertTrue(last <= ts.getLatest());
+            assertTrue(ts.getLatest() <= 1);
+            last = ts.getLatest();
+        }
+    }
+
+    private void fillCapacity(TimeSeries ts, int iterations) {
+        for (int i = 0; i < iterations; i++) {
+            ts.update(1);
+        }
+    }
+}
+```
+===========
+
+2.1. Agent 4 Result: NO
+The code contains the Conditional Test Logic smell because it uses `for` loops within the helper methods `verifyUpdateSequence` and `fillCapacity`, which are called by the test methods.
+===========
+
+=================================================
+2.2. Agent 3 Result: ```java
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import java.util.stream.IntStream;
+
+public class TimeSeriesTest {
+
+    @Test
+    public void testInitialValue() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        assertEquals(0f, ts.getLatest(), 0f);
+    }
+
+    @Test
+    public void testUpdateSequence() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        float[] last = {ts.getLatest()};
+        IntStream.range(0, 100).forEach(i -> {
+            assertEquals(i + 1, ts.getHistory().length);
+            ts.update(1);
+            assertTrue(last[0] <= ts.getLatest());
+            assertTrue(ts.getLatest() <= 1);
+            last[0] = ts.getLatest();
+        });
+    }
+
+    @Test
+    public void testFillCapacity() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        IntStream.range(0, 100).forEach(i -> ts.update(1));
+    }
+}
+```
+===========
+
+2.2. Agent 4 Result: NO
+The methods `testUpdateSequence` and `testFillCapacity` contain `IntStream.range().forEach(...)` statements, which function as loops and constitute the Conditional Test Logic test smell.
+===========
+
+=================================================
+2.3. Agent 3 Result: ```java
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+
+public class TimeSeriesTest {
+
+    @Test
+    public void testInitialValue() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        assertEquals(0f, ts.getLatest(), 0f);
+    }
+
+    @Test
+    public void testUpdateSequence() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        verifyUpdateSequence(ts);
+    }
+
+    @Test
+    public void testFillCapacity() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        fillToCapacity(ts);
+    }
+
+    private void verifyUpdateSequence(TimeSeries ts) {
+        float[] last = {ts.getLatest()};
+        for (int i = 0; i < 100; i++) {
+            assertEquals(i + 1, ts.getHistory().length);
+            ts.update(1);
+            assertTrue(last[0] <= ts.getLatest());
+            assertTrue(ts.getLatest() <= 1);
+            last[0] = ts.getLatest();
+        }
+    }
+
+    private void fillToCapacity(TimeSeries ts) {
+        for (int i = 0; i < 100; i++) {
+            ts.update(1);
+        }
+    }
+}
+```
+===========
+
+2.3. Agent 4 Result: NO
+The code contains the Conditional Test Logic smell because the helper methods `verifyUpdateSequence` and `fillToCapacity` use `for` loops to perform assertions and operations.
+===========
+
+=================================================
+
+===== Test 27 =====
+
+Test Code: 
+ @Test
+@Test
+    public void canReadXml1_0Test() throws IOException {
+        URL configUrl = getClass().getResource("/hudson/config_1_0.xml");
+        XStream2  xs = new XStream2();
+        xs.alias("hudson", Jenkins.class);
+
+        XmlFile xmlFile =  new XmlFile(xs, new File(configUrl.getFile()));
+        if (xmlFile.exists()) {
+            Node n = (Node) xmlFile.read();
+            assertThat(n.getNumExecutors(), is(2));
+            assertThat(n.getMode().toString(), is("NORMAL"));
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if` statement (`if (xmlFile.exists())`), which is a control statement. According to the definition, this constitutes the "Conditional Test Logic" test smell because tests should be linear and predictable rather than dependent on conditional branching.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void canReadXml1_0Test() throws IOException {
+    URL configUrl = getClass().getResource("/hudson/config_1_0.xml");
+    XStream2 xs = new XStream2();
+    xs.alias("hudson", Jenkins.class);
+
+    XmlFile xmlFile = new XmlFile(xs, new File(configUrl.getFile()));
+    
+    Node n = (Node) xmlFile.read();
+    assertThat(n.getNumExecutors(), is(2));
+    assertThat(n.getMode().toString(), is("NORMAL"));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 28 =====
+
+Test Code: 
+ @Test
+@Test
+    public void xml1_0_withSpecialCharsShouldFail() {
+        URL configUrl = getClass().getResource("/hudson/config_1_0_with_special_chars.xml");
+        XStream2  xs = new XStream2();
+        xs.alias("hudson", Jenkins.class);
+
+        XmlFile xmlFile =  new XmlFile(xs, new File(configUrl.getFile()));
+        if (xmlFile.exists()) {
+            IOException e = assertThrows(IOException.class, xmlFile::read);
+            assertThat(e.getCause(), instanceOf(ConversionException.class));
+            ConversionException ce = (ConversionException) e.getCause();
+            assertThat(ce.get("cause-exception"), is(StreamException.class.getName()));
+            assertThat(ce.get("class"), is(Jenkins.class.getName()));
+            assertThat(ce.get("required-type"), is(Jenkins.class.getName()));
+            assertThat(ce.get("converter-type"), is(RobustReflectionConverter.class.getName()));
+            assertThat(ce.get("path"), is("/hudson/label"));
+            assertThat(ce.get("line number"), is("7"));
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if` statement (`if (xmlFile.exists())`), which is a control statement. According to the definition provided, the presence of such logic within a test method constitutes the "Conditional Test Logic" test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+public void xml1_0_withSpecialCharsShouldFail() {
+    URL configUrl = getClass().getResource("/hudson/config_1_0_with_special_chars.xml");
+    XStream2 xs = new XStream2();
+    xs.alias("hudson", Jenkins.class);
+
+    XmlFile xmlFile = new XmlFile(xs, new File(configUrl.getFile()));
+    assertTrue(xmlFile.exists());
+
+    IOException e = assertThrows(IOException.class, xmlFile::read);
+    assertThat(e.getCause(), instanceOf(ConversionException.class));
+    ConversionException ce = (ConversionException) e.getCause();
+    assertThat(ce.get("cause-exception"), is(StreamException.class.getName()));
+    assertThat(ce.get("class"), is(Jenkins.class.getName()));
+    assertThat(ce.get("required-type"), is(Jenkins.class.getName()));
+    assertThat(ce.get("converter-type"), is(RobustReflectionConverter.class.getName()));
+    assertThat(ce.get("path"), is("/hudson/label"));
+    assertThat(ce.get("line number"), is("7"));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 29 =====
+
+Test Code: 
+ @Test
+@Test
+    void testReplicasReadWrite() {
+
+        NodeSelection<String, String> nodes = commands
+                .nodes(redisClusterNode -> redisClusterNode.getFlags().contains(RedisClusterNode.NodeFlag.SLAVE));
+
+        assertThat(nodes.size()).isEqualTo(2);
+
+        commands.set(key, value);
+        waitForReplication(key, ClusterTestSettings.port4);
+
+        try {
+
+            nodes.commands().get(key);
+            fail("Missing RedisCommandExecutionException: MOVED");
+        } catch (RedisCommandExecutionException e) {
+            if (e.getMessage().startsWith("MOVED")) {
+                assertThat(e.getSuppressed()).isEmpty();
+            } else {
+                assertThat(e.getSuppressed()).isNotEmpty();
+            }
+        }
+    }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if-else` statement inside the `catch` block to decide which assertion to execute based on whether the exception message starts with "MOVED". According to the definition provided, any control statement (including `if`) within a test method constitutes the "Conditional Test Logic" smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void testReplicasReadWriteMoved() {
+    NodeSelection<String, String> nodes = commands
+            .nodes(redisClusterNode -> redisClusterNode.getFlags().contains(RedisClusterNode.NodeFlag.SLAVE));
+
+    assertThat(nodes.size()).isEqualTo(2);
+
+    commands.set(key, value);
+    waitForReplication(key, ClusterTestSettings.port4);
+
+    RedisCommandExecutionException e = org.junit.jupiter.api.Assertions.assertThrows(RedisCommandExecutionException.class, () -> {
+        nodes.commands().get(key);
+    });
+
+    assertThat(e.getMessage()).startsWith("MOVED");
+    assertThat(e.getSuppressed()).isEmpty();
+}
+
+@Test
+void testReplicasReadWriteNotMoved() {
+    NodeSelection<String, String> nodes = commands
+            .nodes(redisClusterNode -> redisClusterNode.getFlags().contains(RedisClusterNode.NodeFlag.SLAVE));
+
+    assertThat(nodes.size()).isEqualTo(2);
+
+    commands.set(key, value);
+    waitForReplication(key, ClusterTestSettings.port4);
+
+    RedisCommandExecutionException e = org.junit.jupiter.api.Assertions.assertThrows(RedisCommandExecutionException.class, () -> {
+        nodes.commands().get(key);
+    });
+
+    assertThat(e.getMessage()).doesNotStartWith("MOVED");
+    assertThat(e.getSuppressed()).isNotEmpty();
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================
+
+===== Test 30 =====
+
+Test Code: 
+ @Test
+@Test
+        void directConsumptionStopsWithNoPower(){
+            Tile producerTile = createFakeTile(0, 0, createFakeProducerBlock(10.0f));
+            ((GeneratorBuild)producerTile.build).productionEfficiency = 1.0f;
+            Tile consumerTile = createFakeTile(0, 1, createFakeDirectConsumer(5.0f));
+
+            PowerGraph powerGraph = new PowerGraph();
+            powerGraph.add(producerTile.build);
+            powerGraph.add(consumerTile.build);
+            powerGraph.update();
+
+            assertEquals(1.0f, consumerTile.build.power.status, Mathf.FLOAT_ROUNDING_ERROR);
+
+            powerGraph.removeList(producerTile.build);
+            powerGraph.add(consumerTile.build);
+            powerGraph.update();
+
+            assertEquals(0.0f, consumerTile.build.power.status, Mathf.FLOAT_ROUNDING_ERROR);
+            if(consumerTile.block().consPower != null){
+                assertEquals(0f, consumerTile.block().consPower.efficiency(consumerTile.build));
+            }
+        }
+[Detection Iter 1]
+1.1. Agent 1 Result: YES
+The test method contains an `if` statement (`if(consumerTile.block().consPower != null)`), which constitutes Conditional Test Logic. Tests should be deterministic and linear; using control flow to decide whether to execute an assertion makes the test's outcome dependent on a condition, which is a recognized test smell.
+===========
+
+1.1. Agent 2 Result: YES
+===========
+
+------------------------------------------------
+2.1. Agent 3 Result: ```java
+@Test
+void directConsumptionStopsWithNoPower(){
+    Tile producerTile = createFakeTile(0, 0, createFakeProducerBlock(10.0f));
+    ((GeneratorBuild)producerTile.build).productionEfficiency = 1.0f;
+    Tile consumerTile = createFakeTile(0, 1, createFakeDirectConsumer(5.0f));
+
+    PowerGraph powerGraph = new PowerGraph();
+    powerGraph.add(producerTile.build);
+    powerGraph.add(consumerTile.build);
+    powerGraph.update();
+
+    assertEquals(1.0f, consumerTile.build.power.status, Mathf.FLOAT_ROUNDING_ERROR);
+
+    powerGraph.removeList(producerTile.build);
+    powerGraph.add(consumerTile.build);
+    powerGraph.update();
+
+    assertEquals(0.0f, consumerTile.build.power.status, Mathf.FLOAT_ROUNDING_ERROR);
+    assertEquals(0f, consumerTile.block().consPower.efficiency(consumerTile.build));
+}
+```
+===========
+
+2.1. Agent 4 Result: YES
+===========
+
+=================================================

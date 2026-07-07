@@ -1,0 +1,873 @@
+Id,LLM,Date,Test Smell,Language,Project,URL,Method,Test Code,Line Count,Refactored code
+121,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/KeyColumnValueStoreTest.java,testClearStorage,"    @Test
+    public void testClearStorage() throws Exception {
+        final String[][] values = generateValues();
+        loadValues(values);
+        close();
+
+        manager = openStorageManagerForClearStorageTest();
+        assertTrue(manager.exists(), ""storage should exist before clearing"");
+        manager.clearStorage();
+        try {
+            assertFalse(manager.exists(), ""storage should not exist after clearing"");
+        } catch (Exception e) {
+            // Retry to accommodate backends (e.g. BerkeleyDB) which may require a clean manager after clearing storage
+            manager.close();
+            manager = openStorageManager();
+            assertFalse(manager.exists(), ""storage should not exist after clearing"");
+        }
+    }",18,"```java
+@Test
+    public void testClearStorage() throws Exception {
+        final String[][] values = generateValues();
+        loadValues(values);
+        close();
+
+        manager = openStorageManagerForClearStorageTest();
+        assertTrue(manager.exists(), ""storage should exist before clearing"");
+        manager.clearStorage();
+
+        // To accommodate backends (e.g. BerkeleyDB) which may require a clean manager after clearing storage,
+        // we ensure the manager is refreshed before verifying existence.
+        manager.close();
+        manager = openStorageManager();
+        assertFalse(manager.exists(), ""storage should not exist after clearing"");
+    }
+```"
+122,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/LockKeyColumnValueStoreTest.java,testLocalLockContention,"    @Test
+    public void testLocalLockContention() throws BackendException {
+        store[0].acquireLock(k, c1, null, tx[0][0]);
+
+        try {
+            store[0].acquireLock(k, c1, null, tx[0][1]);
+            fail(""Lock contention exception not thrown"");
+        } catch (BackendException e) {
+            assertTrue(e instanceof PermanentLockingException || e instanceof TemporaryLockingException);
+        }
+
+        try {
+            store[0].acquireLock(k, c1, null, tx[0][1]);
+            fail(""Lock contention exception not thrown (2nd try)"");
+        } catch (BackendException e) {
+            assertTrue(e instanceof PermanentLockingException || e instanceof TemporaryLockingException);
+        }
+    }",18,"```java
+    @Test
+    public void testLocalLockContention() throws BackendException {
+        store[0].acquireLock(k, c1, null, tx[0][0]);
+
+        BackendException e1 = assertThrows(BackendException.class, () -> 
+            store[0].acquireLock(k, c1, null, tx[0][1])
+        );
+        assertTrue(e1 instanceof PermanentLockingException || e1 instanceof TemporaryLockingException);
+
+        BackendException e2 = assertThrows(BackendException.class, () -> 
+            store[0].acquireLock(k, c1, null, tx[0][1])
+        );
+        assertTrue(e2 instanceof PermanentLockingException || e2 instanceof TemporaryLockingException);
+    }
+```"
+123,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/apache/skywalking,https://raw.githubusercontent.com/apache/skywalking/master/oap-server/server-library/library-util/src/test/java/org/apache/skywalking/oap/server/library/util/prometheus/parser/TextParserTest.java,parseTextSuccessfully,"    @Test
+    public void parseTextSuccessfully() throws IOException {
+        try (InputStream is = ResourceUtils.readToStream(""testdata/prometheus.txt"")) {
+            TextParser parser = new TextParser(is);
+            MetricFamily mf;
+            int mfNum = 0;
+            while ((mf = parser.parse(now)) != null) {
+                mfNum++;
+                MetricFamily expected = expectedMfs.poll();
+                assertNotNull(expected);
+                assertThat(mf).isEqualTo(expected);
+            }
+            assertThat(mfNum).isEqualTo(3);
+        }
+    }",15,"```java
+@Test
+    public void parseTextSuccessfully() throws IOException {
+        try (InputStream is = ResourceUtils.readToStream(""testdata/prometheus.txt"")) {
+            TextParser parser = new TextParser(is);
+            MetricFamily mf;
+            int mfNum = 0;
+            while ((mf = parser.parse(now)) != null) {
+                mfNum++;
+                MetricFamily expected = expectedMfs.poll();
+                assertNotNull(expected);
+                assertThat(mf).isEqualTo(expected);
+            }
+            assertThat(mfNum).isEqualTo(3);
+        }
+    }
+```"
+124,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/apache/skywalking,https://raw.githubusercontent.com/apache/skywalking/master/oap-server/server-receiver-plugin/envoy-metrics-receiver-plugin/src/test/java/org/apache/skywalking/oap/server/receiver/envoy/als/k8s/K8SALSServiceMeshHTTPAnalysisTest.java,testIngressRoleIdentify,"    @Test
+    public void testIngressRoleIdentify() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-ingress.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+            Role identify = analysis.identify(requestBuilder.getIdentifier(), Role.NONE);
+
+            Assertions.assertEquals(Role.PROXY, identify);
+        }
+    }",10,"@Test
+    public void testIngressRoleIdentify() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-ingress.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+            Role identify = analysis.identify(requestBuilder.getIdentifier(), Role.NONE);
+
+            Assertions.assertEquals(Role.PROXY, identify);
+        }
+    }"
+125,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/log/LogTest.java,testReadMarkerCompatibility,"    @Test
+    public void testReadMarkerCompatibility() throws Exception {
+        Log l1 = manager.openLog(""testx"");
+        l1.registerReader(ReadMarker.fromIdentifierOrNow(""mark""),new StoringReader(0));
+        l1.registerReader(ReadMarker.fromIdentifierOrTime(""mark"", Instant.now().minusMillis(100)),new StoringReader(1));
+        try {
+            l1.registerReader(ReadMarker.fromIdentifierOrNow(""other""));
+            fail();
+        } catch (IllegalArgumentException ignored) {}
+        try {
+            l1.registerReader(ReadMarker.fromTime(Instant.now().minusMillis(100)));
+            fail();
+        } catch (IllegalArgumentException ignored) {}
+        l1.registerReader(ReadMarker.fromNow(), new StoringReader(2));
+    }",15,"```java
+@Test
+    public void testReadMarkerCompatibility() throws Exception {
+        Log l1 = manager.openLog(""testx"");
+        l1.registerReader(ReadMarker.fromIdentifierOrNow(""mark""), new StoringReader(0));
+        l1.registerReader(ReadMarker.fromIdentifierOrTime(""mark"", Instant.now().minusMillis(100)), new StoringReader(1));
+        
+        assertThrows(IllegalArgumentException.class, () -> l1.registerReader(ReadMarker.fromIdentifierOrNow(""other"")));
+        assertThrows(IllegalArgumentException.class, () -> l1.registerReader(ReadMarker.fromTime(Instant.now().minusMillis(100))));
+        
+        l1.registerReader(ReadMarker.fromNow(), new StoringReader(2));
+    }
+```"
+126,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/graphdb/database/management/ManagementTest.java,testReservedNamesRejectedForPropertyKeys,"    @Test
+    public void testReservedNamesRejectedForPropertyKeys() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                tm.makePropertyKey(s);
+                fail(""Property key  \"""" + s + ""\"" must be rejected"");
+            } catch (IllegalArgumentException e) {
+                log.debug(""Caught expected exception"", e);
+            } finally {
+                tm.commit();
+            }
+        }
+    }",14,"```java
+    @Test
+    public void testReservedNamesRejectedForPropertyKeys() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                assertThrows(IllegalArgumentException.class, () -> tm.makePropertyKey(s));
+            } finally {
+                tm.commit();
+            }
+        }
+    }
+```"
+127,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/graphdb/database/management/ManagementTest.java,testReservedNamesRejectedForEdgeLabels,"    @Test
+    public void testReservedNamesRejectedForEdgeLabels() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                tm.makeEdgeLabel(s);
+                fail(""Edge label \"""" + s + ""\"" must be rejected"");
+            } catch (IllegalArgumentException e) {
+                log.debug(""Caught expected exception"", e);
+            } finally {
+                tm.commit();
+            }
+        }
+    }",14,"```java
+    @Test
+    public void testReservedNamesRejectedForEdgeLabels() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                assertThrows(IllegalArgumentException.class, () -> tm.makeEdgeLabel(s), 
+                    ""Edge label \"""" + s + ""\"" must be rejected"");
+            } finally {
+                tm.commit();
+            }
+        }
+    }
+```"
+128,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/graphdb/database/management/ManagementTest.java,testReservedNamesRejectedForVertexLabels,"    @Test
+    public void testReservedNamesRejectedForVertexLabels() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                tm.makeVertexLabel(s);
+                fail(""Vertex label \"""" + s + ""\"" must be rejected"");
+            } catch (IllegalArgumentException e) {
+                log.debug(""Caught expected exception"", e);
+            } finally {
+                tm.commit();
+            }
+        }
+    }",14,"```java
+    @Test
+    public void testReservedNamesRejectedForVertexLabels() {
+        for (String s : ILLEGAL_USER_DEFINED_NAMES) {
+            JanusGraphManagement tm = graph.openManagement();
+            try {
+                assertThrows(IllegalArgumentException.class, () -> tm.makeVertexLabel(s));
+            } finally {
+                tm.commit();
+            }
+        }
+    }
+```"
+129,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/graphdb/JanusGraphEventualGraphTest.java,testLockException,"    @Test
+    public void testLockException() {
+        try {
+            testBatchLoadingLocking(false);
+            fail();
+        } catch (JanusGraphException e) {
+            Throwable cause = e;
+            while (cause.getCause()!=null) cause=cause.getCause();
+            assertEquals(UnsupportedOperationException.class,cause.getClass());
+        }
+    }",11,"```java
+    @Test
+    public void testLockException() {
+        JanusGraphException e = assertThrows(JanusGraphException.class, () -> testBatchLoadingLocking(false));
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        assertEquals(UnsupportedOperationException.class, cause.getClass());
+    }
+```"
+130,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/graphdb/JanusGraphIndexTest.java,testClearStorage,"    @Test
+    public void testClearStorage() throws Exception {
+        GraphOfTheGodsFactory.load(graph);
+        tearDown();
+        config.set(ConfigElement.getPath(GraphDatabaseConfiguration.DROP_ON_CLEAR), true);
+        final Backend backend = getBackend(config, false);
+        assertStorageExists(backend, true);
+        clearGraph(config);
+        try { backend.close(); } catch (final Exception e) { /* Most backends do not support closing after clearing */}
+        try (final Backend newBackend = getBackend(config, false)) {
+            assertStorageExists(newBackend, false);
+        }
+    }",13,"```java
+@Test
+    public void testClearStorage() throws Exception {
+        GraphOfTheGodsFactory.load(graph);
+        tearDown();
+        config.set(ConfigElement.getPath(GraphDatabaseConfiguration.DROP_ON_CLEAR), true);
+        final Backend backend = getBackend(config, false);
+        assertStorageExists(backend, true);
+        clearGraph(config);
+        backend.close();
+        try (final Backend newBackend = getBackend(config, false)) {
+            assertStorageExists(newBackend, false);
+        }
+    }
+```"
+131,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/apache/skywalking,https://raw.githubusercontent.com/apache/skywalking/master/oap-server/server-receiver-plugin/envoy-metrics-receiver-plugin/src/test/java/org/apache/skywalking/oap/server/receiver/envoy/als/k8s/K8SALSServiceMeshHTTPAnalysisTest.java,testSidecarRoleIdentify,"    @Test
+    public void testSidecarRoleIdentify() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-mesh-server-sidecar.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+            Role identify = analysis.identify(requestBuilder.getIdentifier(), Role.NONE);
+
+            Assertions.assertEquals(Role.SIDECAR, identify);
+        }
+    }",10,"```java
+@Test
+    public void testSidecarRoleIdentify() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-mesh-server-sidecar.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+            Role identify = analysis.identify(requestBuilder.getIdentifier(), Role.NONE);
+
+            Assertions.assertEquals(Role.SIDECAR, identify);
+        }
+    }
+```"
+132,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/builder/src/test/java/io/quarkus/builder/BasicTests.java,testDuplicate,"    @Test
+    public void testDuplicate() {
+        final BuildChainBuilder builder = BuildChain.builder();
+        builder.addFinal(DummyItem.class);
+        BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class);
+        stepBuilder.build();
+        stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class);
+        stepBuilder.build();
+        try {
+            builder.build();
+            fail(""Expected exception"");
+        } catch (ChainBuildException expected) {
+            // ok
+            assertFalse(expected.getMessage().contains(""overridable""));
+        }
+    }",28,"```java
+    @Test
+    public void testDuplicate() {
+        final BuildChainBuilder builder = BuildChain.builder();
+        builder.addFinal(DummyItem.class);
+        BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class);
+        stepBuilder.build();
+        stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class);
+        stepBuilder.build();
+
+        ChainBuildException exception = assertThrows(ChainBuildException.class, () -> builder.build());
+        assertFalse(exception.getMessage().contains(""overridable""));
+    }
+```"
+133,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/builder/src/test/java/io/quarkus/builder/BasicTests.java,testDuplicateOverridable,"    @Test
+    public void testDuplicateOverridable() {
+        final BuildChainBuilder builder = BuildChain.builder();
+        builder.addFinal(DummyItem.class);
+        BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+        stepBuilder.build();
+        stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+        stepBuilder.build();
+        try {
+            builder.build();
+            fail(""Expected exception"");
+        } catch (ChainBuildException expected) {
+            // ok
+            assertTrue(expected.getMessage().contains(""overridable""));
+        }
+    }",28,"```java
+@Test
+    public void testDuplicateOverridable() {
+        final BuildChainBuilder builder = BuildChain.builder();
+        builder.addFinal(DummyItem.class);
+        BuildStepBuilder stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+        stepBuilder.build();
+        stepBuilder = builder.addBuildStep(new BuildStep() {
+            @Override
+            public void execute(final BuildContext context) {
+                context.produce(new DummyItem());
+            }
+        });
+        stepBuilder.produces(DummyItem.class, ProduceFlag.OVERRIDABLE);
+        stepBuilder.build();
+
+        ChainBuildException expected = assertThrows(ChainBuildException.class, () -> builder.build());
+        assertTrue(expected.getMessage().contains(""overridable""));
+    }
+```"
+134,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/integration-tests/oidc-tenancy/src/test/java/io/quarkus/it/keycloak/BearerTokenAuthorizationTest.java,testHybridWebApp,"    @Test
+    public void testHybridWebApp() throws IOException {
+        RestAssured.when().post(""/oidc/userinfo-endpoint-call-count"").then().body(equalTo(""0""));
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient.getPage(""http://localhost:8081/tenants/tenant-hybrid/api/user"");
+            assertNotNull(getStateCookie(webClient, ""tenant-hybrid-webapp""));
+            assertEquals(""Sign in to quarkus-hybrid"", page.getTitleText());
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+            loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+            page = loginForm.getButtonByName(""login"").click();
+            assertEquals(""alice:web-app"", page.getBody().asNormalizedText());
+            webClient.getCookieManager().clearCookies();
+        }
+        RestAssured.when().get(""/oidc/userinfo-endpoint-call-count"").then().body(equalTo(""1""));
+    }",16,"```java
+@Test
+    public void testHybridWebApp() throws IOException {
+        RestAssured.when().post(""/oidc/userinfo-endpoint-call-count"").then().body(equalTo(""0""));
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient.getPage(""http://localhost:8081/tenants/tenant-hybrid/api/user"");
+            assertNotNull(getStateCookie(webClient, ""tenant-hybrid-webapp""));
+            assertEquals(""Sign in to quarkus-hybrid"", page.getTitleText());
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+            loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+            page = loginForm.getButtonByName(""login"").click();
+            assertEquals(""alice:web-app"", page.getBody().asNormalizedText());
+            webClient.getCookieManager().clearCookies();
+        }
+        RestAssured.when().get(""/oidc/userinfo-endpoint-call-count"").then().body(equalTo(""1""));
+    }
+```"
+135,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/runtime/src/test/java/io/quarkus/runtime/configuration/ConfigExpanderTestCase.java,testExpanderMissing,"    @Test
+    public void testExpanderMissing() {
+        final SmallRyeConfig config = buildConfig(maps(
+                singletonMap(""foo.two"", ""${foo.one}empty""),
+                singletonMap(""foo.three"", ""+${foo.two}+"")));
+        try {
+            config.getValue(""foo.two"", String.class);
+            fail(""Expected exception"");
+        } catch (NoSuchElementException expected) {
+            // OK
+        }
+        try {
+            config.getValue(""foo.three"", String.class);
+            fail(""Expected exception"");
+        } catch (NoSuchElementException expected) {
+            // OK
+        }
+    }",18,"```java
+    @Test
+    public void testExpanderMissing() {
+        final SmallRyeConfig config = buildConfig(maps(
+                singletonMap(""foo.two"", ""${foo.one}empty""),
+                singletonMap(""foo.three"", ""+${foo.two}+"")));
+
+        assertThrows(NoSuchElementException.class, () -> config.getValue(""foo.two"", String.class));
+        assertThrows(NoSuchElementException.class, () -> config.getValue(""foo.three"", String.class));
+    }
+```"
+136,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/runtime/src/test/java/io/quarkus/runtime/configuration/ConfigExpanderTestCase.java,testStackBlowOut,"    @Test
+    public void testStackBlowOut() {
+        final SmallRyeConfig config = buildConfig(maps(
+                singletonMap(""foo.blowout"", ""${foo.blowout}"")));
+        try {
+            config.getValue(""foo.blowout"", String.class);
+            fail(""Expected exception"");
+        } catch (IllegalArgumentException expected) {
+            // OK
+        }
+    }",11,"```java
+    @Test
+    public void testStackBlowOut() {
+        final SmallRyeConfig config = buildConfig(maps(
+                singletonMap(""foo.blowout"", ""${foo.blowout}"")));
+        assertThrows(IllegalArgumentException.class, () -> config.getValue(""foo.blowout"", String.class));
+    }
+```"
+137,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/runtime/src/test/java/io/quarkus/runtime/configuration/ConfigProfileTestCase.java,overriddenProfile,"   @Test
+    void overriddenProfile() {
+        System.setProperty(""quarkus.profile"", ""foo"");
+        try {
+            final SmallRyeConfig config = buildConfig(
+                    ""foo.one"", ""v1"",
+                    ""foo.two"", ""v2"",
+                    ""%foo.foo.three"", ""f1"",
+                    ""%prod.foo.four"", ""v4"");
+            assertEquals(""v1"", config.getValue(""foo.one"", String.class));
+            assertEquals(""v2"", config.getValue(""foo.two"", String.class));
+            assertEquals(""f1"", config.getValue(""foo.three"", String.class));
+            assertFalse(config.getOptionalValue(""foo.four"", String.class).isPresent());
+        } finally {
+            System.clearProperty(""quarkus.profile"");
+        }
+    }",17,"```java
+@Test
+    void overriddenProfile() {
+        System.setProperty(""quarkus.profile"", ""foo"");
+        try {
+            final SmallRyeConfig config = buildConfig(
+                    ""foo.one"", ""v1"",
+                    ""foo.two"", ""v2"",
+                    ""%foo.foo.three"", ""f1"",
+                    ""%prod.foo.four"", ""v4"");
+            assertEquals(""v1"", config.getValue(""foo.one"", String.class));
+            assertEquals(""v2"", config.getValue(""foo.two"", String.class));
+            assertEquals(""f1"", config.getValue(""foo.three"", String.class));
+            assertFalse(config.getOptionalValue(""foo.four"", String.class).isPresent());
+        } finally {
+            System.clearProperty(""quarkus.profile"");
+        }
+    }
+```"
+138,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/runtime/src/test/java/io/quarkus/runtime/configuration/ConfigProfileTestCase.java,overriddenProfileHigherOrdinal,"   @Test
+    void overriddenProfileHigherOrdinal() {
+        System.setProperty(""quarkus.profile"", ""foo"");
+        try {
+            final SmallRyeConfig config = configBuilder()
+                    .withSources(new PropertiesConfigSource(maps(""foo"", ""default""), ""source"", 1000))
+                    .withSources(new PropertiesConfigSource(maps(""%foo.foo"", ""profile""), ""source"", 100))
+                    .build();
+
+            assertEquals(""default"", config.getRawValue(""foo""));
+        } finally {
+            System.clearProperty(""quarkus.profile"");
+        }
+    }",14,"@Test
+    void overriddenProfileHigherOrdinal() {
+        System.setProperty(""quarkus.profile"", ""foo"");
+        try {
+            final SmallRyeConfig config = configBuilder()
+                    .withSources(new PropertiesConfigSource(maps(""foo"", ""default""), ""source"", 1000))
+                    .withSources(new PropertiesConfigSource(maps(""%foo.foo"", ""profile""), ""source"", 100))
+                    .build();
+
+            assertEquals(""default"", config.getRawValue(""foo""));
+        } finally {
+            System.clearProperty(""quarkus.profile"");
+        }
+    }"
+139,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/ExposedHostTest.java,testExposedHostWithNetwork,"    @Test
+    public void testExposedHostWithNetwork() {
+        Testcontainers.exposeHostPorts(server.getAddress().getPort());
+        try (Network network = Network.newNetwork()) {
+            assertResponse(
+                new GenericContainer<>(tinyContainerDef()).withNetwork(network),
+                server.getAddress().getPort()
+            );
+        }
+    }",10,"```java
+@Test
+    public void testExposedHostWithNetwork() {
+        Testcontainers.exposeHostPorts(server.getAddress().getPort());
+        try (Network network = Network.newNetwork()) {
+            assertResponse(
+                new GenericContainer<>(tinyContainerDef()).withNetwork(network),
+                server.getAddress().getPort()
+            );
+        }
+    }
+```"
+140,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/GenericContainerTest.java,shouldReportOOMAfterWait,"    @Test
+    public void shouldReportOOMAfterWait() {
+        Info info = DockerClientFactory.instance().client().infoCmd().exec();
+        // Poor man's rootless Docker detection :D
+        Assumptions.assumeThat(info.getSecurityOptions()).doesNotContain(""name=rootless"");
+        try (
+            GenericContainer<?> container = new GenericContainer<>(TestImages.TINY_IMAGE)
+                .withStartupCheckStrategy(new NoopStartupCheckStrategy())
+                .waitingFor(new WaitForExitedState(ContainerState::getOOMKilled))
+                .withCreateContainerCmdModifier(it -> {
+                    it
+                        .getHostConfig()
+                        .withMemory(20 * FileUtils.ONE_MB)
+                        .withMemorySwappiness(0L)
+                        .withMemorySwap(0L)
+                        .withMemoryReservation(0L)
+                        .withKernelMemory(16 * FileUtils.ONE_MB);
+                })
+                .withCommand(""sh"", ""-c"", ""A='0123456789'; for i in $(seq 0 32); do A=$A$A; done; sleep 10m"")
+        ) {
+            assertThatThrownBy(container::start)
+                .hasStackTraceContaining(""Wait strategy failed. Container crashed with out-of-memory (OOMKilled)"")
+                .hasStackTraceContaining(""Nope!"");
+        }
+    }",25,"@Test
+    public void shouldReportOOMAfterWait() {
+        Info info = DockerClientFactory.instance().client().infoCmd().exec();
+        // Poor man's rootless Docker detection :D
+        Assumptions.assumeThat(info.getSecurityOptions()).doesNotContain(""name=rootless"");
+        try (
+            GenericContainer<?> container = new GenericContainer<>(TestImages.TINY_IMAGE)
+                .withStartupCheckStrategy(new NoopStartupCheckStrategy())
+                .waitingFor(new WaitForExitedState(ContainerState::getOOMKilled))
+                .withCreateContainerCmdModifier(it -> {
+                    it
+                        .getHostConfig()
+                        .withMemory(20 * FileUtils.ONE_MB)
+                        .withMemorySwappiness(0L)
+                        .withMemorySwap(0L)
+                        .withMemoryReservation(0L)
+                        .withKernelMemory(16 * FileUtils.ONE_MB);
+                })
+                .withCommand(""sh"", ""-c"", ""A='0123456789'; for i in $(seq 0 32); do A=$A$A; done; sleep 10m"")
+        ) {
+            assertThatThrownBy(container::start)
+                .hasStackTraceContaining(""Wait strategy failed. Container crashed with out-of-memory (OOMKilled)"")
+                .hasStackTraceContaining(""Nope!"");
+        }
+    }"
+141,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/GenericContainerTest.java,shouldReportErrorAfterWait,"    @Test
+    public void shouldReportErrorAfterWait() {
+        try (
+            GenericContainer<?> container = new GenericContainer<>(TestImages.TINY_IMAGE)
+                .withStartupCheckStrategy(new NoopStartupCheckStrategy())
+                .waitingFor(new WaitForExitedState(state -> state.getExitCode() > 0))
+                .withCommand(""sh"", ""-c"", ""usleep 100; exit 123"")
+        ) {
+            assertThatThrownBy(container::start)
+                .hasStackTraceContaining(""Container startup failed for image "" + TestImages.TINY_IMAGE)
+                .hasStackTraceContaining(""Wait strategy failed. Container exited with code 123"")
+                .hasStackTraceContaining(""Nope!"");
+        }
+    }",14,"@Test
+    public void shouldReportErrorAfterWait() {
+        try (
+            GenericContainer<?> container = new GenericContainer<>(TestImages.TINY_IMAGE)
+                .withStartupCheckStrategy(new NoopStartupCheckStrategy())
+                .waitingFor(new WaitForExitedState(state -> state.getExitCode() > 0))
+                .withCommand(""sh"", ""-c"", ""usleep 100; exit 123"")
+        ) {
+            assertThatThrownBy(container::start)
+                .hasStackTraceContaining(""Container startup failed for image "" + TestImages.TINY_IMAGE)
+                .hasStackTraceContaining(""Wait strategy failed. Container exited with code 123"")
+                .hasStackTraceContaining(""Nope!"");
+        }
+    }"
+142,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/NetworkTest.java,testNetworkSupport,"        @Test
+        public void testNetworkSupport() throws Exception {
+            String response = bar.execInContainer(""wget"", ""-O"", ""-"", ""http://foo:8080"").getStdout();
+            assertThat(response).as(""received response"").isEqualTo(""yay"");
+        }",5,"@Test
+        public void testNetworkSupport() throws Exception {
+            String response = bar.execInContainer(""wget"", ""-O"", ""-"", ""http://foo:8080"").getStdout();
+            assertThat(response).as(""received response"").isEqualTo(""yay"");
+        }"
+143,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/NetworkTest.java,testBuilder,"        @Test
+        public void testBuilder() {
+            try (Network network = Network.builder().driver(""macvlan"").build()) {
+                String id = network.getId();
+                assertThat(
+                    DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(id).exec().getDriver()
+                )
+                    .as(""Flag is set"")
+                    .isEqualTo(""macvlan"");
+            }
+        }",11,"@Test
+        public void testBuilder() {
+            try (Network network = Network.builder().driver(""macvlan"").build()) {
+                String id = network.getId();
+                assertThat(
+                    DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(id).exec().getDriver()
+                )
+                    .as(""Flag is set"")
+                    .isEqualTo(""macvlan"");
+            }
+        }"
+144,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/NetworkTest.java,testModifiers,"        @Test
+        public void testModifiers() {
+            try (
+                Network network = Network.builder().createNetworkCmdModifier(cmd -> cmd.withDriver(""macvlan"")).build()
+            ) {
+                String id = network.getId();
+                assertThat(
+                    DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(id).exec().getDriver()
+                )
+                    .as(""Flag is set"")
+                    .isEqualTo(""macvlan"");
+            }
+        }",13,"@Test
+        public void testModifiers() {
+            try (
+                Network network = Network.builder().createNetworkCmdModifier(cmd -> cmd.withDriver(""macvlan"")).build()
+            ) {
+                String id = network.getId();
+                assertThat(
+                    DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(id).exec().getDriver()
+                )
+                    .as(""Flag is set"")
+                    .isEqualTo(""macvlan"");
+            }
+        }"
+145,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/NetworkTest.java,testReusability,"        @Test
+        public void testReusability() {
+            try (Network network = Network.newNetwork()) {
+                String firstId = network.getId();
+                assertThat(DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(firstId).exec())
+                    .as(""Network exists"")
+                    .isNotNull();
+
+                network.close();
+
+                assertThat(
+                    DockerClientFactory
+                        .instance()
+                        .client()
+                        .inspectNetworkCmd()
+                        .withNetworkId(network.getId())
+                        .exec()
+                        .getId()
+                )
+                    .as(""New network created"")
+                    .isNotEqualTo(firstId);
+            }
+        }",23,"```java
+@Test
+        public void testReusability() {
+            try (Network network = Network.newNetwork()) {
+                String firstId = network.getId();
+                assertThat(DockerClientFactory.instance().client().inspectNetworkCmd().withNetworkId(firstId).exec())
+                    .as(""Network exists"")
+                    .isNotNull();
+
+                network.close();
+
+                assertThat(
+                    DockerClientFactory
+                        .instance()
+                        .client()
+                        .inspectNetworkCmd()
+                        .withNetworkId(network.getId())
+                        .exec()
+                        .getId()
+                )
+                    .as(""New network created"")
+                    .isNotEqualTo(firstId);
+            }
+        }
+```"
+146,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/output/ContainerLogsTest.java,getLogsReturnsAllLogsToDate,"    public void getLogsReturnsAllLogsToDate() {
+        try (GenericContainer<?> container = shortLivedContainer()) {
+            container.start();
+
+            final String logs = container.getLogs();
+            assertThat(logs).as(""stdout and stderr are reflected in the returned logs"").isEqualTo(""stdout\nstderr"");
+        }
+    }",8,"public void getLogsReturnsAllLogsToDate() {
+        try (GenericContainer<?> container = shortLivedContainer()) {
+            container.start();
+
+            final String logs = container.getLogs();
+            assertThat(logs).as(""stdout and stderr are reflected in the returned logs"").isEqualTo(""stdout\nstderr"");
+        }
+    }"
+147,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/output/ContainerLogsTest.java,getLogsContainsBothOutputTypes,"    @Test
+    public void getLogsContainsBothOutputTypes() {
+        try (GenericContainer<?> container = shortLivedContainer()) {
+            container.start();
+
+            // docsGetAllLogs {
+            final String logs = container.getLogs();
+            // }
+            assertThat(logs).as(""stdout is reflected in the returned logs"").contains(""stdout"");
+            assertThat(logs).as(""stderr is reflected in the returned logs"").contains(""stderr"");
+        }
+    }",12,"@Test
+    public void getLogsContainsBothOutputTypes() {
+        try (GenericContainer<?> container = shortLivedContainer()) {
+            container.start();
+
+            // docsGetAllLogs {
+            final String logs = container.getLogs();
+            // }
+            assertThat(logs).as(""stdout is reflected in the returned logs"").contains(""stdout"");
+            assertThat(logs).as(""stderr is reflected in the returned logs"").contains(""stderr"");
+        }
+    }"
+148,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-cql/src/test/java/org/janusgraph/diskstorage/cql/CQLResultSetKeyIteratorTest.java,testEmpty,"    @Test
+    public void testEmpty() throws IOException {
+        final Array<Row> rows = Array.empty();
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.iterator()).thenReturn(rows.iterator());
+
+        final CQLColValGetter getter = new CQLColValGetter(new EntryMetaData[0]);
+        try (final CQLResultSetKeyIterator resultSetKeyIterator = new CQLResultSetKeyIterator(ALL_COLUMNS, getter, resultSet)) {
+            assertFalse(resultSetKeyIterator.hasNext());
+        }
+    }",12,"@Test
+    public void testEmpty() throws IOException {
+        final Array<Row> rows = Array.empty();
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.iterator()).thenReturn(rows.iterator());
+
+        final CQLColValGetter getter = new CQLColValGetter(new EntryMetaData[0]);
+        try (final CQLResultSetKeyIterator resultSetKeyIterator = new CQLResultSetKeyIterator(ALL_COLUMNS, getter, resultSet)) {
+            assertFalse(resultSetKeyIterator.hasNext());
+        }
+    }"
+149,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/apache/skywalking,https://raw.githubusercontent.com/apache/skywalking/master/oap-server/server-receiver-plugin/envoy-metrics-receiver-plugin/src/test/java/org/apache/skywalking/oap/server/receiver/envoy/als/k8s/K8SALSServiceMeshHTTPAnalysisTest.java,testIngressMetric,"    @Test
+    public void testIngressMetric() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-ingress.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+
+            AccessLogAnalyzer.Result result = this.analysis.analysis(AccessLogAnalyzer.Result.builder().build(), requestBuilder.getIdentifier(), requestBuilder.getHttpLogs().getLogEntry(0), Role.PROXY);
+
+            Assertions.assertEquals(2, result.getMetrics().getHttpMetrics().getMetricsCount());
+
+            HTTPServiceMeshMetric incoming = result.getMetrics().getHttpMetrics().getMetrics(0);
+            Assertions.assertEquals(""UNKNOWN"", incoming.getSourceServiceName());
+            Assertions.assertEquals(""ingress"", incoming.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.server, incoming.getDetectPoint());
+
+            HTTPServiceMeshMetric outgoing = result.getMetrics().getHttpMetrics().getMetrics(1);
+            Assertions.assertEquals(""ingress"", outgoing.getSourceServiceName());
+            Assertions.assertEquals(""productpage"", outgoing.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.client, outgoing.getDetectPoint());
+        }
+    }",21,"@Test
+    public void testIngressMetric() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-ingress.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+
+            AccessLogAnalyzer.Result result = this.analysis.analysis(AccessLogAnalyzer.Result.builder().build(), requestBuilder.getIdentifier(), requestBuilder.getHttpLogs().getLogEntry(0), Role.PROXY);
+
+            Assertions.assertEquals(2, result.getMetrics().getHttpMetrics().getMetricsCount());
+
+            HTTPServiceMeshMetric incoming = result.getMetrics().getHttpMetrics().getMetrics(0);
+            Assertions.assertEquals(""UNKNOWN"", incoming.getSourceServiceName());
+            Assertions.assertEquals(""ingress"", incoming.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.server, incoming.getDetectPoint());
+
+            HTTPServiceMeshMetric outgoing = result.getMetrics().getHttpMetrics().getMetrics(1);
+            Assertions.assertEquals(""ingress"", outgoing.getSourceServiceName());
+            Assertions.assertEquals(""productpage"", outgoing.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.client, outgoing.getDetectPoint());
+        }
+    }"
+150,gemma4:31b,2026-06-10,Exception Handling,Java,https://github.com/apache/skywalking,https://raw.githubusercontent.com/apache/skywalking/master/oap-server/server-receiver-plugin/envoy-metrics-receiver-plugin/src/test/java/org/apache/skywalking/oap/server/receiver/envoy/als/k8s/K8SALSServiceMeshHTTPAnalysisTest.java,testIngress2SidecarMetric,"    @Test
+    public void testIngress2SidecarMetric() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-ingress2sidecar.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+
+            AccessLogAnalyzer.Result result = this.analysis.analysis(AccessLogAnalyzer.Result.builder().build(), requestBuilder.getIdentifier(), requestBuilder.getHttpLogs().getLogEntry(0), Role.SIDECAR);
+
+            Assertions.assertEquals(1, result.getMetrics().getHttpMetrics().getMetricsCount());
+
+            HTTPServiceMeshMetric incoming = result.getMetrics().getHttpMetrics().getMetrics(0);
+            Assertions.assertEquals("""", incoming.getSourceServiceName());
+            Assertions.assertEquals(""productpage"", incoming.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.server, incoming.getDetectPoint());
+        }
+    }",16,"@Test
+    public void testIngress2SidecarMetric() throws IOException {
+        try (InputStreamReader isr = new InputStreamReader(getResourceAsStream(""envoy-ingress2sidecar.msg""))) {
+            StreamAccessLogsMessage.Builder requestBuilder = StreamAccessLogsMessage.newBuilder();
+            JsonFormat.parser().merge(isr, requestBuilder);
+
+            AccessLogAnalyzer.Result result = this.analysis.analysis(AccessLogAnalyzer.Result.builder().build(), requestBuilder.getIdentifier(), requestBuilder.getHttpLogs().getLogEntry(0), Role.SIDECAR);
+
+            Assertions.assertEquals(1, result.getMetrics().getHttpMetrics().getMetricsCount());
+
+            HTTPServiceMeshMetric incoming = result.getMetrics().getHttpMetrics().getMetrics(0);
+            Assertions.assertEquals("""", incoming.getSourceServiceName());
+            Assertions.assertEquals(""productpage"", incoming.getDestServiceName());
+            Assertions.assertEquals(DetectPoint.server, incoming.getDetectPoint());
+        }
+    }"
