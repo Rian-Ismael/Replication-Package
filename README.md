@@ -1,49 +1,49 @@
 # Replicating Agentic Workflows for Test Smell Detection and Refactoring with Gemma-4-31B
 
-Pacote de replicação do estudo de detecção e refatoração de *test smells* com pipelines agênticos, aplicado ao modelo aberto **Gemma-4-31B** servido localmente via Ollama. O trabalho reproduz o protocolo de Melo et al. (IEEE Software, 2026) substituindo o modelo por uma versão mais recente, mantendo o mesmo dataset, os mesmos prompts e os mesmos critérios de correção, sobre as mesmas 150 instâncias, e comparando um pipeline de um agente contra um de quatro agentes.
+Replication package for the study on test smell detection and refactoring with agentic pipelines, applied to the open model **Gemma-4-31B** served locally through Ollama. This work reproduces the protocol of Melo et al. (IEEE Software, 2026), replacing the model with a more recent version while keeping the same dataset, the same prompts, and the same correctness criteria, over the same 150 instances, and comparing a single-agent pipeline against a four-agent one.
 
-Autor: Rian Melo (UFCG, Campina Grande, PB, Brasil).
+Author: Rian Melo (UFCG, Campina Grande, PB, Brazil).
 
-## Objetivo
+## Goal
 
-O estudo responde a duas questões de pesquisa:
+The study addresses two research questions:
 
-* **RQ1:** dentro de um pipeline agêntico, o Gemma-4-31B refatora *test smells* em nível comparável aos LLMs proprietários (o3, Claude-4-Sonnet, Gemini-2.5-Pro)?
-* **RQ2:** para o Gemma-4-31B, um pipeline de quatro agentes supera o de um agente na detecção e refatoração?
+* **RQ1:** Within an agentic pipeline, does Gemma-4-31B refactor test smells at a level comparable to proprietary LLMs (o3, Claude-4-Sonnet, Gemini-2.5-Pro)?
+* **RQ2:** For Gemma-4-31B, does a four-agent pipeline outperform a single-agent one in detection and refactoring?
 
-Com um agente e uma única tentativa, o Gemma-4-31B refatorou corretamente 78.7% das instâncias, superando os proprietários reportados no estudo original. O pipeline de quatro agentes não apresentou ganho, empatando em três tipos de smell, apresentando desempenho inferior em dois e exigindo tempo de execução consideravelmente maior.
+With a single agent and a single attempt, Gemma-4-31B correctly refactored 78.7% of the instances, surpassing the proprietary models reported in the original study. The four-agent pipeline showed no gain, tying on three smell types, performing worse on two, and requiring considerably more execution time.
 
-## Estrutura do repositório
+## Repository structure
 
 ```
 .
 ├── Dataset/
-│   └── Dataset.xlsx                      # 150 instâncias (5 abas, uma por smell)
+│   └── Dataset.xlsx                      # 150 instances (5 sheets, one per smell)
 ├── Source Code/
-│   ├── test_smell_refactor_single_agent.ipynb   # pipeline de 1 agente
-│   ├── test_smell_refactor_multi_agent.ipynb    # pipeline de 4 agentes
-│   └── test_smell_definitions_and_refactorings.txt  # definições dos smells (entrada dos notebooks)
+│   ├── test_smell_refactor_single_agent.ipynb   # single-agent pipeline
+│   ├── test_smell_refactor_multi_agent.ipynb    # four-agent pipeline
+│   └── test_smell_definitions_and_refactorings.txt  # smell definitions (notebook input)
 ├── Outputs Gemma4-31B/
-│   ├── Single/                           # saídas do pipeline de 1 agente
+│   ├── Single/                           # single-agent pipeline outputs
 │   │   ├── Assertion Roulette/           # output_*.csv + agente_single_*.txt
 │   │   ├── Conditional Test Logic/
 │   │   ├── Duplicate Assert/
 │   │   ├── Exception Handling/
 │   │   └── Magic Number/
-│   └── Multi/                            # saídas do pipeline de 4 agentes
+│   └── Multi/                            # four-agent pipeline outputs
 │       ├── Assertion Roulette/           # output_*.csv + agentes_multi_*.txt
 │       ├── Conditional Test Logic/
 │       ├── Duplicate Assert/
 │       ├── Exception Handling/
 │       └── Magic Number/
-└── Gemma4-31B-Results.xlsx              # planilha consolidada (avaliação e tempos)
+└── Gemma4-31B-Results.xlsx              # consolidated spreadsheet (evaluation and times)
 ```
 
 ## Dataset
 
-O conjunto reutiliza as 150 instâncias do estudo base, extraídas de 11 sistemas Java open-source que utilizam JUnit 5: janusgraph, quarkus, testcontainers-java, opengrok, jenkins, lettuce, Mindustry, data-transfer-project, Activiti, flowable-engine e skywalking. São cinco tipos de smell, com 30 instâncias cada. Seguindo o critério do estudo original, consideram-se apenas métodos de teste com no máximo 30 linhas de código.
+The set reuses the 150 instances from the base study, extracted from 11 open-source Java systems that use JUnit 5: janusgraph, quarkus, testcontainers-java, opengrok, jenkins, lettuce, Mindustry, data-transfer-project, Activiti, flowable-engine, and skywalking. There are five smell types, with 30 instances each. Following the original criterion, only test methods with at most 30 lines of code are considered.
 
-Definições adotadas para cada tipo de smell, conforme o estudo original:
+Definitions adopted for each smell type, following the original study:
 
 | Smell | Definition and refactoring |
 |---|---|
@@ -53,83 +53,83 @@ Definições adotadas para cada tipo de smell, conforme o estudo original:
 | **Exception Handling** | Occurs when a test method contains either a `throw` statement or at least a `catch` clause. To avoid this smell, use the testing framework's features (e.g., `assertThrows`) instead of manually catching or throwing exceptions. |
 | **Magic Number** | Occurs when a test method contains an assertion with a numeric literal as an argument. Refactoring involves extracting and initializing all magic numbers into constants or local variables with descriptive names. |
 
-O `Dataset.xlsx` contém uma aba por smell, com as colunas `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code` e `Line Count`. Os notebooks leem o dataset em formato CSV (`Dataset.csv`, via `pd.read_csv`), correspondente a um smell por vez. Para reproduzir, exporte a aba do smell desejado do `Dataset.xlsx` como CSV e aponte o parâmetro `csv_path` para esse arquivo (ou salve-o como `Dataset.csv`).
+`Dataset.xlsx` contains one sheet per smell, with the columns `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code`, and `Line Count`. The notebooks read the dataset in CSV format (`Dataset.csv`, via `pd.read_csv`), corresponding to one smell at a time. To reproduce, export the sheet of the desired smell from `Dataset.xlsx` as CSV and point the `csv_path` parameter to that file (or save it as `Dataset.csv`).
 
 ## Pipelines
 
-Ambos os pipelines usam LangChain para orquestração e Ollama para servir o modelo. Os prompts empregam as estratégias Persona e Chain-of-Thought e são reutilizados sem modificação do estudo original.
+Both pipelines use LangChain for orchestration and Ollama to serve the model. The prompts employ the Persona and Chain-of-Thought strategies and are reused without modification from the original study.
 
-**Um agente.** Um único agente recebe a definição do smell e o código do teste e, em uma única passagem, detecta o smell e reescreve o código. Na ausência de smell, o código original é retornado.
+**Single agent.** A single agent receives the smell definition and the test code and, in a single pass, detects the smell and rewrites the code. When no smell is present, the original code is returned.
 
-**Quatro agentes.** A tarefa é distribuída entre quatro agentes, com um laço Evaluator-Optimizer que repete até três vezes (`max_iters = 3`):
+**Four agents.** The task is distributed across four agents, with an Evaluator-Optimizer loop that repeats up to three times (`max_iters = 3`):
 
-1. **Agente 1** detecta o smell, respondendo `YES` ou `NO` na primeira linha com justificativa.
-2. **Agente 2** avalia a detecção do Agente 1; em caso de discordância, retorna `NO` com o que corrigir, e o laço de detecção reinicia com esse feedback.
-3. **Agente 3** refatora o código, preservando o comportamento e mantendo validade em JUnit 5.
-4. **Agente 4** verifica se o código refatorado não contém o smell, segue a especificação JUnit 5 e não introduz erros de compilação; em caso negativo, retorna `NO` com explicação, e o laço de refatoração reinicia.
+1. **Agent 1** detects the smell, answering `YES` or `NO` on the first line with a justification.
+2. **Agent 2** evaluates Agent 1's detection; on disagreement, it returns `NO` with what to correct, and the detection loop restarts with that feedback.
+3. **Agent 3** refactors the code, preserving behavior and keeping it valid under JUnit 5.
+4. **Agent 4** checks that the refactored code no longer contains the smell, follows the JUnit 5 specification, and introduces no compilation errors; if not, it returns `NO` with an explanation, and the refactoring loop restarts.
 
-A variante de dois agentes é omitida por custo, uma vez que os resultados originais a posicionavam entre as configurações de um e de quatro agentes.
+The two-agent variant is omitted for cost reasons, since the original results placed it between the single- and four-agent configurations.
 
-## Ambiente de execução
+## Execution environment
 
-Modelo `gemma4:31b` servido pelo Ollama e acessado pela pipeline LangChain, executado em ambiente Google Colab com GPU NVIDIA A100, usando a configuração padrão do notebook de referência do estudo original. O identificador exato do modelo está registrado no pacote.
+Model `gemma4:31b` served by Ollama and accessed by the LangChain pipeline, executed in a Google Colab environment with an NVIDIA A100 GPU, using the default configuration of the reference notebook from the original study. The exact model identifier is recorded in the package.
 
-## Reprodução
+## Reproduction
 
-Requisitos no ambiente antes da execução: o CSV do smell (exportado do `Dataset.xlsx`), o arquivo de definições `test_smell_definitions_and_refactorings.txt` (em `Source Code/`) e um servidor Ollama acessível. O arquivo de definições segue o formato lido pela função `load_smell`:
+Requirements in the environment before execution: the smell CSV (exported from `Dataset.xlsx`), the definitions file `test_smell_definitions_and_refactorings.txt` (in `Source Code/`), and a reachable Ollama server. The definitions file follows the format read by the `load_smell` function:
 
 ```
-test_smell_name = "Nome do Smell"
+test_smell_name = "Smell Name"
 test_smell_definition = """
-...definição e instruções de refatoração...
+...definition and refactoring instructions...
 """
 ```
 
-Cada notebook expõe os seguintes parâmetros:
+Each notebook exposes the following parameters:
 
-| Parâmetro | Padrão | Descrição |
+| Parameter | Default | Description |
 |---|---|---|
-| `csv_path` | `Dataset.csv` | CSV com os casos de teste. |
-| `definitions_path` | `test_smell_definitions_and_refactorings.txt` | Arquivo de definições dos smells. |
-| `smell` | um dos cinco smells | Smell analisado na execução. |
-| `model` | `gemma4:31b` | Modelo servido pelo Ollama. |
-| `base_url` | `http://localhost:11434` | Endereço do servidor Ollama. |
-| `max_iters` | `3` (apenas multi) | Máximo de iterações do laço Evaluator-Optimizer. |
+| `csv_path` | `Dataset.csv` | CSV with the test cases. |
+| `definitions_path` | `test_smell_definitions_and_refactorings.txt` | Smell definitions file. |
+| `smell` | one of the five smells | Smell analyzed in the run. |
+| `model` | `gemma4:31b` | Model served by Ollama. |
+| `base_url` | `http://localhost:11434` | Ollama server address. |
+| `max_iters` | `3` (multi only) | Maximum iterations of the Evaluator-Optimizer loop. |
 
-Os resultados reportados foram obtidos com a configuração padrão do notebook de referência do estudo original.
+The reported results were obtained with the default configuration of the reference notebook from the original study.
 
-## Formato das saídas
+## Output format
 
-No pipeline de um agente, `output_<smell>.csv` acrescenta ao dataset as colunas `LLM`, `Test Smell`, `Date` e `Refactored code`. No pipeline de quatro agentes, o CSV registra as decisões por iteração (`1° - Detected smell?`, `1° - Do you agree with detection?`, `1° - Refactored code`, `1° -  LLM - Is there still a test smell?`, e análogas para a 2ª e 3ª iterações). Cada pasta inclui ainda o log `.txt` com o rastro completo das respostas dos agentes por instância.
+In the single-agent pipeline, `output_<smell>.csv` appends to the dataset the columns `LLM`, `Test Smell`, `Date`, and `Refactored code`. In the four-agent pipeline, the CSV records the decisions per iteration (`1° - Detected smell?`, `1° - Do you agree with detection?`, `1° - Refactored code`, `1° -  LLM - Is there still a test smell?`, and analogous ones for the 2nd and 3rd iterations). Each folder also includes a `.txt` log with the full trace of the agents' responses per instance.
 
-A planilha `Gemma4-31B-Results.xlsx` consolida a avaliação. A aba `Category` contém o resultado por instância (`True`/`False`) para as duas configurações, com a razão da falha registrada quando o resultado é `False`. A aba `Time` contém os tempos de execução por smell e configuração. As demais abas armazenam os outputs brutos por smell e a categorização de falhas.
+The `Gemma4-31B-Results.xlsx` spreadsheet consolidates the evaluation. The `Category` sheet contains the per-instance result (`True`/`False`) for both configurations, with the failure reason recorded when the result is `False`. The `Time` sheet contains the execution times per smell and configuration. The remaining sheets store the raw outputs per smell and the failure categorization.
 
-## Critérios de avaliação
+## Evaluation criteria
 
-A métrica é **pass@1**: o smell é considerado tratado quando a primeira tentativa do modelo o detecta e repara corretamente. Uma detecção é correta quando o modelo aponta o smell e apresenta justificativa consistente. Uma refatoração é correta quando: (a) elimina o smell alvo; (b) preserva o comportamento do teste; (c) permanece válida em JUnit 5; e (d) não introduz novos smells. Refatorações que violam qualquer condição são registradas com a razão da falha.
+The metric is **pass@1**: a smell is considered handled when the model's first attempt correctly detects and repairs it. A detection is correct when the model flags the smell and provides a consistent justification. A refactoring is correct when it (a) eliminates the target smell; (b) preserves the test's behavior; (c) remains valid under JUnit 5; and (d) introduces no new smells. Refactorings that violate any condition are recorded with the failure reason.
 
-## Resultados
+## Results
 
-Taxa de pass@1 por smell (30 instâncias por tipo):
+Pass@1 rate per smell (30 instances per type):
 
-| Test smell | 1 agente | 4 agentes |
+| Test smell | Single-agent | Four-agent |
 |---|---|---|
 | Assertion Roulette | 86.7% | 86.7% |
 | Conditional Test Logic | 26.7% | 26.7% |
 | Duplicate Assert | 86.7% | 66.7% |
 | Exception Handling | 93.3% | 93.3% |
 | Magic Number | 100.0% | 96.7% |
-| **Geral** | **78.7%** | **74.0%** |
+| **Overall** | **78.7%** | **74.0%** |
 
-O pipeline de um agente acertou 118 das 150 instâncias (78.7%); o de quatro agentes acertou 111 (74.0%).
+The single-agent pipeline solved 118 of the 150 instances (78.7%); the four-agent pipeline solved 111 (74.0%).
 
-**RQ1.** Com um agente, o Gemma-4-31B (78.7%) supera os proprietários reportados no estudo original: o3 (74.7%), Gemini-2.5-Pro (72.0%) e Claude-4-Sonnet (59.3%). Supera também o melhor modelo aberto original (Phi-4-14B, 55.3% com dois agentes), o resultado combinado dos modelos abertos (70.6%) e o antecessor direto Gemma-2-9B (40.7% na melhor configuração). A tentativa única do Gemma-4-31B ultrapassa inclusive o pass@5 de 75.3% do Phi-4-14B com quatro agentes e até cinco tentativas.
+**RQ1.** With a single agent, Gemma-4-31B (78.7%) surpasses the proprietary models reported in the original study: o3 (74.7%), Gemini-2.5-Pro (72.0%), and Claude-4-Sonnet (59.3%). It also surpasses the best original open model (Phi-4-14B, 55.3% with two agents), the combined result of the open models (70.6%), and its direct predecessor Gemma-2-9B (40.7% in its best configuration). The single attempt of Gemma-4-31B even exceeds the pass@5 of 75.3% obtained by Phi-4-14B with four agents and up to five attempts.
 
-**RQ2.** Os quatro agentes não melhoram o resultado. As configurações empatam em Conditional Test Logic, Assertion Roulette e Exception Handling, e a de quatro agentes é inferior em Magic Number (de 100.0% para 96.7%) e Duplicate Assert (de 86.7% para 66.7%). No nível de instância, o pipeline de um agente acerta 10 casos em que o de quatro falha, contra 3 no sentido oposto, sendo 8 desses 10 em Duplicate Assert.
+**RQ2.** The four agents do not improve the result. The configurations tie on Conditional Test Logic, Assertion Roulette, and Exception Handling, and the four-agent one is worse on Magic Number (from 100.0% to 96.7%) and Duplicate Assert (from 86.7% to 66.7%). At the instance level, the single-agent pipeline solves 10 cases where the four-agent one fails, against 3 in the opposite direction, with 8 of those 10 in Duplicate Assert.
 
-Tempo de execução por smell:
+Execution time per smell:
 
-| Test smell | 1 agente | 4 agentes |
+| Test smell | Single-agent | Four-agent |
 |---|---|---|
 | Assertion Roulette | 18m30s | 44m38s |
 | Conditional Test Logic | 1h01m41s | 44m00s |
@@ -138,27 +138,27 @@ Tempo de execução por smell:
 | Magic Number | 18m21s | 47m00s |
 | **Total** | **≈170m** | **≈277m** |
 
-O processamento das 150 instâncias levou cerca de 170 minutos com um agente e cerca de 277 minutos com quatro, um aumento de aproximadamente 63%.
+Processing the 150 instances took about 170 minutes with a single agent and about 277 minutes with four, an increase of roughly 63%.
 
-## Análise de falhas
+## Failure analysis
 
-Distribuição das razões de falha por configuração:
+Distribution of failure reasons per configuration:
 
-| Razão da falha | 1 agente | 4 agentes |
+| Failure reason | Single-agent | Four-agent |
 |---|---|---|
-| Mudança de comportamento ou erro de compilação | 22 | 32 |
-| Alterou o código sem remover o smell | 6 | 1 |
-| Construções inválidas ou fora de JUnit 5 | 2 | 0 |
-| Não corrigiu nem alterou o código | 2 | 1 |
-| Smell não detectado | 0 | 4 |
-| Refatoração correta rejeitada pelo verificador | 0 | 1 |
-| **Total de falhas** | **32** | **39** |
+| Behavioral change or compilation error | 22 | 32 |
+| Changed the code without removing the smell | 6 | 1 |
+| Invalid constructs or outside JUnit 5 | 2 | 0 |
+| Neither fixed nor changed the code | 2 | 1 |
+| Smell not detected | 0 | 4 |
+| Correct refactoring rejected by the verifier | 0 | 1 |
+| **Total failures** | **32** | **39** |
 
-A quase totalidade das falhas concentra-se na etapa de reparo, e não na de detecção. O pipeline de um agente nunca falha por não identificar um smell, e o de quatro falha nessa etapa apenas em 4 casos, todos decorrentes da confirmação adicional. As duas categorias exclusivas do pipeline de quatro agentes (smell não detectado e refatoração correta rejeitada pelo verificador) indicam que os estágios adicionais podem remover resultados corretos, efeito mais evidente em Duplicate Assert.
+Almost all failures are concentrated in the repair stage rather than the detection stage. The single-agent pipeline never fails by missing a smell, and the four-agent one fails at that stage in only 4 cases, all caused by the additional confirmation step. The two categories exclusive to the four-agent pipeline (smell not detected and correct refactoring rejected by the verifier) indicate that the extra stages can remove correct results, an effect most visible in Duplicate Assert.
 
-## Como citar
+## How to cite
 
-Se este trabalho for útil, cite:
+If this work is useful, please cite:
 
 ```bibtex
 @misc{melo2026replicating,
@@ -172,11 +172,11 @@ Se este trabalho for útil, cite:
 }
 ```
 
-Autor: Rian Melo, Universidade Federal de Campina Grande (UFCG), Campina Grande, Paraíba, Brasil. Contato: rian.melo@ccc.ufcg.edu.br
+Author: Rian Melo, Universidade Federal de Campina Grande (UFCG), Campina Grande, Paraíba, Brazil. Contact: rian.melo@ccc.ufcg.edu.br
 
-Repositório: https://github.com/Rian-Ismael/Replication-Package
+Repository: https://github.com/Rian-Ismael/Replication-Package
 
-## Referências
+## References
 
-* Rian Melo et al. **Agentic LMs: Hunting Down Test Smells.** IEEE Software 43, 1 (2026), 32 a 40. doi:10.1109/MS.2025.3621356
+* Rian Melo et al. **Agentic LMs: Hunting Down Test Smells.** IEEE Software 43, 1 (2026), 32–40. doi:10.1109/MS.2025.3621356
 * Rian Melo et al. **Agentic LMs: Hunting Down Test Smells, Replication Package.** Zenodo. doi:10.5281/zenodo.17285750
