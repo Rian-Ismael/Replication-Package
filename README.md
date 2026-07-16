@@ -70,6 +70,93 @@ Both pipelines use LangChain for orchestration and Ollama to serve the model. Th
 
 The two-agent variant is omitted for cost reasons, since the original results placed it between the single- and four-agent configurations.
 
+## Prompts
+
+The prompts are reused without modification from the original study and employ the Persona and Chain-of-Thought strategies. Placeholders in braces are filled at runtime: `{test_smell_definition_and_refactoring}` (the definition of the target smell), `{test_smell_name}`, `{code}` (the test under analysis), and the feedback/answer fields exchanged between agents. They are reproduced here so the behavior can be inspected without opening the notebooks.
+
+**Single agent (detect and refactor).**
+
+```
+You are a coding assistant specializing in test code analysis and refactoring, with many years of experience.
+{test_smell_definition_and_refactoring}
+
+Your task:
+Analyze the provided test code to identify and resolve occurrences of "{test_smell_name}".
+If no such smell is present, return the original code unchanged. Ensure that the refactored test maintains the same behavior while eliminating the {test_smell_name}.
+Finally, output only the final refactored code, ensuring it is valid under JUnit 5 and free of compilation errors, without providing any additional explanations or text.
+
+Code to analyze:
+{code}
+```
+
+**Four agents — Agent 1 (detection).**
+
+```
+You are a coding assistant with many years of experience that detects test smells.
+{test_smell_definition_and_refactoring}
+
+Your goal is to determine if the provided test code exhibits the test smell "{test_smell_name}".
+{code}
+Next I may give you further details.
+{agent_feedback}
+If the test code contains {test_smell_name}, respond with EXACTLY "YES" on the first line and explain why. Ignore code comments. If it does not contain, say EXACTLY "NO" on the first line and explain why not.
+```
+
+**Four agents — Agent 2 (detection review).**
+
+```
+You are a coding expert reviewing the detection of a test smell. Consider the following test smell.
+{test_smell_definition_and_refactoring}
+
+A previous agent analyzed the following test code.
+{code}
+It gave the following answer.
+{agent_answer}
+Your goal is to evaluate if the previous detection by another agent is correct and justified. Ignore code comments.
+If you do not agree, answer NO and explain what's wrong with it and what to correct.
+If yes, just say YES.
+```
+
+**Four agents — Agent 3 (refactoring).**
+
+```
+You are a coding assistant specializing in test code analysis and refactoring, with many years of experience.
+{test_smell_definition_and_refactoring}
+
+Your task is as follows.
+First analyze the provided test code to resolve test smell occurrences "{test_smell_name}". If there is no smell, output the original code unchanged.
+Second ensure the test preserves the same behavior, but is free of {test_smell_name}.
+Third output only the final refactored code, valid under JUnit 5.
+Finally check the refactored version does not introduce compilation errors.
+
+Provide only the final refactored code, with no additional explanation or text.
+Code to analyze:
+{code}
+
+Next I may provide you further details.
+{reviewer_feedback}
+```
+
+**Four agents — Agent 4 (refactoring verification).**
+
+```
+You are a code reviewer specializing in JUnit 5 test smells.
+{test_smell_definition_and_refactoring}
+
+Analyze the following code.
+{refactored_code}
+
+Your task is to check three conditions.
+First check the code does not have the test smell {test_smell_name}.
+Second verify the code follows JUnit 5 specification.
+Finally confirms the code does not have compilation errors.
+
+If the code satisfy all conditions, respond with EXACTLY "YES" on the first line.
+If not, respond with EXACTLY "NO" on the first line, then explain in one or two sentences why.
+
+Let's think step by step.
+```
+
 ## Execution environment
 
 Model `gemma4:31b` served by Ollama and accessed by the LangChain pipeline, executed in a Google Colab environment with an NVIDIA A100 GPU, using the default configuration of the reference notebook from the original study (sampling temperature `0.6`). The exact model identifier is recorded in the package.
