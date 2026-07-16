@@ -1,0 +1,1422 @@
+Id,LLM,Date,Test Smell,Language,Project,URL,Method,Test Code,Line Count,Refactored code,Result,
+91,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/configuration/TinkerpopFeaturesTest.java,testVertexFeatures,"    @Test
+    public void testVertexFeatures()
+    {
+        Graph.Features.VertexFeatures vf = graph.features().vertex();
+        assertFalse(vf.supportsCustomIds());
+        assertFalse(vf.supportsStringIds());
+        assertFalse(vf.supportsUuidIds());
+        assertFalse(vf.supportsAnyIds());
+        assertFalse(vf.supportsCustomIds());
+        assertTrue(vf.supportsNumericIds());
+        assertFalse(vf.supportsUserSuppliedIds());
+
+        graph.close();
+        graph = open(true);
+
+        vf = graph.features().vertex();
+
+        assertFalse(vf.supportsCustomIds());
+        assertFalse(vf.supportsStringIds());
+        assertFalse(vf.supportsUuidIds());
+        assertFalse(vf.supportsAnyIds());
+        assertFalse(vf.supportsCustomIds());
+        assertTrue(vf.supportsNumericIds());
+        assertTrue(vf.supportsUserSuppliedIds());
+    }",25,"```java
+@Test
+    public void testVertexFeatures()
+    {
+        Graph.Features.VertexFeatures vf = graph.features().vertex();
+        assertFalse(vf.supportsCustomIds());
+        assertFalse(vf.supportsStringIds());
+        assertFalse(vf.supportsUuidIds());
+        assertFalse(vf.supportsAnyIds());
+        assertTrue(vf.supportsNumericIds());
+        assertFalse(vf.supportsUserSuppliedIds());
+
+        graph.close();
+        graph = open(true);
+
+        vf = graph.features().vertex();
+
+        assertFalse(vf.supportsCustomIds());
+        assertFalse(vf.supportsStringIds());
+        assertFalse(vf.supportsUuidIds());
+        assertFalse(vf.supportsAnyIds());
+        assertTrue(vf.supportsNumericIds());
+        assertTrue(vf.supportsUserSuppliedIds());
+    }
+```",FALSE,It neither fixed test smells nor changed smelly code
+92,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/idmanagement/VertexIDAssignerTest.java,testDisableIdsFlush,"    @Test
+    public void testDisableIdsFlush() {
+        final JanusGraph graph = getInMemoryGraph(false, false, false, 2);
+        JanusGraphVertex v1 = graph.addVertex();
+        JanusGraphVertex v2 = graph.addVertex();
+        Edge e = v1.addEdge(""knows"", v2);
+        e.property(""prop"", ""old"");
+        graph.tx().commit();
+        assertEquals(""old"", graph.traversal().E().next().property(""prop"").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        Object id = graph.traversal().E().next().id();
+
+        // VertexIDAssigner shouldn't assign a new id if the edge is an existing one
+        e = graph.traversal().E().next();
+        e.property(""prop"", ""new"");
+        graph.tx().commit();
+        assertEquals(""new"", graph.traversal().E().next().property(""prop"").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        assertEquals(id, graph.traversal().E().next().id());
+    }",20,"```java
+    @Test
+    public void testDisableIdsFlushInitial() {
+        final JanusGraph graph = getInMemoryGraph(false, false, false, 2);
+        JanusGraphVertex v1 = graph.addVertex();
+        JanusGraphVertex v2 = graph.addVertex();
+        Edge e = v1.addEdge(""knows"", v2);
+        e.property(""prop"", ""old"");
+        graph.tx().commit();
+        assertEquals(""old"", graph.traversal().E().next().property(""prop"").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+    }
+
+    @Test
+    public void testDisableIdsFlushUpdate() {
+        final JanusGraph graph = getInMemoryGraph(false, false, false, 2);
+        JanusGraphVertex v1 = graph.addVertex();
+        JanusGraphVertex v2 = graph.addVertex();
+        Edge e = v1.addEdge(""knows"", v2);
+        e.property(""prop"", ""old"");
+        graph.tx().commit();
+        Object id = graph.traversal().E().next().id();
+
+        // VertexIDAssigner shouldn't assign a new id if the edge is an existing one
+        e = graph.traversal().E().next();
+        e.property(""prop"", ""new"");
+        graph.tx().commit();
+        assertEquals(""new"", graph.traversal().E().next().property(""prop"").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        assertEquals(id, graph.traversal().E().next().id());
+    }
+```",TRUE,
+93,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/KeyColumnValueStoreTest.java,testOrderedGetKeysRespectsKeyLimit,"    public void testOrderedGetKeysRespectsKeyLimit(TestInfo testInfo) throws BackendException {
+        Preconditions.checkState(4 <= numKeys && 4 <= numColumns);
+
+        final long minKey = KeyValueStoreUtil.idOffset + 1;
+        final long maxKey = KeyValueStoreUtil.idOffset + numKeys - 2;
+        final long expectedKeyCount = maxKey - minKey;
+
+        String[][] values = generateValues();
+        loadValues(values);
+        final SliceQuery columnSlice = new SliceQuery(BufferUtil.zeroBuffer(8), BufferUtil.oneBuffer(8)).setLimit(1);
+
+        KeyIterator keys;
+
+        keys = store.getKeys(new KeyRangeQuery(BufferUtil.getLongBuffer(minKey), BufferUtil.getLongBuffer(maxKey), columnSlice), tx);
+        assertEquals(expectedKeyCount, KeyValueStoreUtil.count(keys));
+
+        clopen();
+
+        keys = store.getKeys(new KeyRangeQuery(BufferUtil.getLongBuffer(minKey), BufferUtil.getLongBuffer(maxKey), columnSlice), tx);
+        assertEquals(expectedKeyCount, KeyValueStoreUtil.count(keys));
+    }",21,"```java
+@Test
+public void testOrderedGetKeysRespectsKeyLimit(TestInfo testInfo) throws BackendException {
+    Preconditions.checkState(4 <= numKeys && 4 <= numColumns);
+
+    final long minKey = KeyValueStoreUtil.idOffset + 1;
+    final long maxKey = KeyValueStoreUtil.idOffset + numKeys - 2;
+    final long expectedKeyCount = maxKey - minKey;
+
+    String[][] values = generateValues();
+    loadValues(values);
+    final SliceQuery columnSlice = new SliceQuery(BufferUtil.zeroBuffer(8), BufferUtil.oneBuffer(8)).setLimit(1);
+
+    KeyIterator keys = store.getKeys(new KeyRangeQuery(BufferUtil.getLongBuffer(minKey), BufferUtil.getLongBuffer(maxKey), columnSlice), tx);
+    assertEquals(expectedKeyCount, KeyValueStoreUtil.count(keys));
+}
+
+@Test
+public void testOrderedGetKeysRespectsKeyLimitAfterClopen(TestInfo testInfo) throws BackendException {
+    Preconditions.checkState(4 <= numKeys && 4 <= numColumns);
+
+    final long minKey = KeyValueStoreUtil.idOffset + 1;
+    final long maxKey = KeyValueStoreUtil.idOffset + numKeys - 2;
+    final long expectedKeyCount = maxKey - minKey;
+
+    String[][] values = generateValues();
+    loadValues(values);
+    final SliceQuery columnSlice = new SliceQuery(BufferUtil.zeroBuffer(8), BufferUtil.oneBuffer(8)).setLimit(1);
+
+    clopen();
+
+    KeyIterator keys = store.getKeys(new KeyRangeQuery(BufferUtil.getLongBuffer(minKey), BufferUtil.getLongBuffer(maxKey), columnSlice), tx);
+    assertEquals(expectedKeyCount, KeyValueStoreUtil.count(keys));
+}
+```",TRUE,
+94,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/KeyColumnValueStoreTest.java,testGetKeysColumnSlicesSimple,"    public void testGetKeysColumnSlicesSimple()
+        throws BackendException {
+
+        final int shiftEveryNthRows = 10;
+        final int expectedKeyCount = numKeys / shiftEveryNthRows * (shiftEveryNthRows - 1);
+
+        Preconditions.checkArgument(0 == numKeys % shiftEveryNthRows);
+        Preconditions.checkArgument(10 < numKeys / shiftEveryNthRows);
+
+        String[][] values = generateValues();
+        loadValues(values, shiftEveryNthRows, 4);
+
+        RecordIterator<StaticBuffer> i;
+        i = KCVSUtil.getKeys(store, storeFeatures(), 8, 4, tx);
+        assertEquals(expectedKeyCount, KeyValueStoreUtil.count(i));
+
+        clopen();
+
+        i = KCVSUtil.getKeys(store, storeFeatures(), 8, 4, tx);
+        assertEquals(expectedKeyCount, KeyValueStoreUtil.count(i));
+
+    }",22,"public void testGetKeysColumnSlicesSimple()
+        throws BackendException {
+
+        final int shiftEveryNthRows = 10;
+        final int expectedKeyCount = numKeys / shiftEveryNthRows * (shiftEveryNthRows - 1);
+
+        Preconditions.checkArgument(0 == numKeys % shiftEveryNthRows);
+        Preconditions.checkArgument(10 < numKeys / shiftEveryNthRows);
+
+        String[][] values = generateValues();
+        loadValues(values, shiftEveryNthRows, 4);
+
+        RecordIterator<StaticBuffer> i = KCVSUtil.getKeys(store, storeFeatures(), 8, 4, tx);
+        assertEquals(expectedKeyCount, KeyValueStoreUtil.count(i));
+    }
+
+    public void testGetKeysColumnSlicesAfterClopen()
+            throws BackendException {
+
+        final int shiftEveryNthRows = 10;
+        final int expectedKeyCount = numKeys / shiftEveryNthRows * (shiftEveryNthRows - 1);
+
+        Preconditions.checkArgument(0 == numKeys % shiftEveryNthRows);
+        Preconditions.checkArgument(10 < numKeys / shiftEveryNthRows);
+
+        String[][] values = generateValues();
+        loadValues(values, shiftEveryNthRows, 4);
+
+        clopen();
+
+        RecordIterator<StaticBuffer> i = KCVSUtil.getKeys(store, storeFeatures(), 8, 4, tx);
+        assertEquals(expectedKeyCount, KeyValueStoreUtil.count(i));
+    }",TRUE,
+95,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/query/QueryTest.java,testMultipleKeysQuery,"    @Test
+    public void testMultipleKeysQuery() {
+        tx.makePropertyKey(""name"").dataType(String.class).make();
+        tx.addVertex(""name"",""vertex1"");
+        tx.addVertex(""name"",""vertex2"");
+        tx.addVertex(""name"",""vertex3"");
+
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Collections.singletonList(""vertex1"")).vertices().iterator());
+        assertEquals(1, found);
+
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"")).vertices().iterator());
+        assertEquals(2, found);
+
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"")).vertices().iterator());
+        assertEquals(3, found);
+
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"", ""vertex4"")).vertices().iterator());
+        assertEquals(3, found);
+
+        int limit = 2;
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"", ""vertex4"")).limit(limit).vertices().iterator());
+        assertEquals(limit, found);
+    }",23,"```java
+    @Test
+    public void testQueryWithOneKey() {
+        setupData();
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Collections.singletonList(""vertex1"")).vertices().iterator());
+        assertEquals(1, found);
+    }
+
+    @Test
+    public void testQueryWithTwoKeys() {
+        setupData();
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"")).vertices().iterator());
+        assertEquals(2, found);
+    }
+
+    @Test
+    public void testQueryWithThreeKeys() {
+        setupData();
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"")).vertices().iterator());
+        assertEquals(3, found);
+    }
+
+    @Test
+    public void testQueryWithFourKeys() {
+        setupData();
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"", ""vertex4"")).vertices().iterator());
+        assertEquals(3, found);
+    }
+
+    @Test
+    public void testQueryWithLimit() {
+        setupData();
+        int limit = 2;
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"", ""vertex4"")).limit(limit).vertices().iterator());
+        assertEquals(limit, found);
+    }
+
+    private void setupData() {
+        tx.makePropertyKey(""name"").dataType(String.class).make();
+        tx.addVertex(""name"",""vertex1"");
+        tx.addVertex(""name"",""vertex2"");
+        tx.addVertex(""name"",""vertex3"");
+    }
+```",TRUE,
+96,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/tinkerpop/optimize/JanusGraphLocalQueryOptimizerStrategyTest.java,testBatchPropertyPrefetching,"    @Test
+    public void testBatchPropertyPrefetching() {
+        clopen(option(HAS_STEP_BATCH_MODE), MultiQueryHasStepStrategyMode.ALL_PROPERTIES.getConfigName());
+        makeSampleGraph();
+
+        // This tests an edge property before inV and will trigger the multiQuery property pre-fetch optimisation in JanusGraphEdgeVertexStep
+        Traversal t = g.V().has(""id"", sid).outE(""knows"").has(""weight"", P.between(1, 3)).inV().has(""weight"", P.between(1, 3)).profile(""~metrics"");
+        assertNumStep(superV * (numV / 5 * 2), 3, (GraphTraversal)t, JanusGraphStep.class, JanusGraphVertexStep.class, JanusGraphHasStep.class);
+        assertTrue(queryProfilerAnnotationIsPresent(t, QueryProfiler.MULTIPREFETCH_ANNOTATION));
+
+        // This tests a vertex property after inV and will trigger the multiQuery property pre-fetch optimisation in JanusGraphVertexStep
+        t = g.V().has(""id"", sid).outE(""knows"").inV().has(""weight"", P.between(1, 3)).profile(""~metrics"");
+        assertNumStep(superV * (numV / 5 * 2), 3, (GraphTraversal)t, JanusGraphStep.class, JanusGraphVertexStep.class, JanusGraphHasStep.class);
+        assertTrue(queryProfilerAnnotationIsPresent(t, QueryProfiler.MULTIPREFETCH_ANNOTATION));
+
+        // As above but with a limit after the has step. Pre-fetch should fetch data up to limit only.
+        t = g.V().has(""id"", sid).outE(""knows"").inV().has(""weight"", P.between(1, 3)).limit(1000).profile(""~metrics"");
+        assertNumStep(superV * (numV / 5 * 2), 3, (GraphTraversal)t, JanusGraphStep.class, JanusGraphVertexStep.class, JanusGraphHasStep.class);
+        assertTrue(queryProfilerAnnotationIsPresent(t, QueryProfiler.MULTIPREFETCH_ANNOTATION));
+    }",20,"```java
+    @Test
+    public void testBatchPropertyPrefetchingEdgeBeforeInV() {
+        clopen(option(HAS_STEP_BATCH_MODE), MultiQueryHasStepStrategyMode.ALL_PROPERTIES.getConfigName());
+        makeSampleGraph();
+
+        // This tests an edge property before inV and will trigger the multiQuery property pre-fetch optimisation in JanusGraphEdgeVertexStep
+        Traversal t = g.V().has(""id"", sid).outE(""knows"").has(""weight"", P.between(1, 3)).inV().has(""weight"", P.between(1, 3)).profile(""~metrics"");
+        assertNumStep(superV * (numV / 5 * 2), 3, (GraphTraversal)t, JanusGraphStep.class, JanusGraphVertexStep.class, JanusGraphHasStep.class);
+        assertTrue(queryProfilerAnnotationIsPresent(t, QueryProfiler.MULTIPREFETCH_ANNOTATION));
+    }
+
+    @Test
+    public void testBatchPropertyPrefetchingVertexAfterInV() {
+        clopen(option(HAS_STEP_BATCH_MODE), MultiQueryHasStepStrategyMode.ALL_PROPERTIES.getConfigName());
+        makeSampleGraph();
+
+        // This tests a vertex property after inV and will trigger the multiQuery property pre-fetch optimisation in JanusGraphVertexStep
+        Traversal t = g.V().has(""id"", sid).outE(""knows"").inV().has(""weight"", P.between(1, 3)).profile(""~metrics"");
+        assertNumStep(superV * (numV / 5 * 2), 3, (GraphTraversal)t, JanusGraphStep.class, JanusGraphVertexStep.class, JanusGraphHasStep.class);
+        assertTrue(queryProfilerAnnotationIsPresent(t, QueryProfiler.MULTIPREFETCH_ANNOTATION));
+    }
+
+    @Test
+    public void testBatchPropertyPrefetchingVertexAfterInVWithLimit() {
+        clopen(option(HAS_STEP_BATCH_MODE), MultiQueryHasStepStrategyMode.ALL_PROPERTIES.getConfigName());
+        makeSampleGraph();
+
+        // As above but with a limit after the has step. Pre-fetch should fetch data up to limit only.
+        Traversal t = g.V().has(""id"", sid).outE(""knows"").inV().has(""weight"", P.between(1, 3)).limit(1000).profile(""~metrics"");
+        assertNumStep(superV * (numV / 5 * 2), 3, (GraphTraversal)t, JanusGraphStep.class, JanusGraphVertexStep.class, JanusGraphHasStep.class);
+        assertTrue(queryProfilerAnnotationIsPresent(t, QueryProfiler.MULTIPREFETCH_ANNOTATION));
+    }
+```",TRUE,
+97,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/integration-tests/oidc-code-flow/src/test/java/io/quarkus/it/keycloak/CodeFlowTest.java,testTokenAutoRefresh,"    public void testTokenAutoRefresh() throws IOException {
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient.getPage(""http://localhost:8081/tenant-autorefresh"");
+            assertEquals(""Sign in to quarkus"", page.getTitleText());
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+            loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+            page = loginForm.getButtonByName(""login"").click();
+            assertEquals(""Tenant AutoRefresh, refreshed: false"", page.asNormalizedText());
+
+            Cookie sessionCookie = getSessionCookie(webClient, ""tenant-autorefresh"");
+            assertNotNull(sessionCookie);
+            String idToken = getIdToken(sessionCookie);
+
+            // Auto-refresh-interval is 30 secs so every call auto-refreshes the token
+            // Right now the original ID token is still valid but will be auto-refreshed
+            page = webClient.getPage(""http://localhost:8081/tenant-autorefresh"");
+            assertEquals(""Tenant AutoRefresh, refreshed: true"", page.asNormalizedText());
+            sessionCookie = getSessionCookie(webClient, ""tenant-autorefresh"");
+            assertNotNull(sessionCookie);
+            String nextIdToken = getIdToken(sessionCookie);
+            assertNotEquals(idToken, nextIdToken);
+
+            webClient.getCookieManager().clearCookies();
+        }
+    }",26,"```java
+@Test
+public void testLoginAndSessionCookie() throws IOException {
+    try (final WebClient webClient = createWebClient()) {
+        HtmlPage page = webClient.getPage(""http://localhost:8081/tenant-autorefresh"");
+        assertEquals(""Sign in to quarkus"", page.getTitleText());
+        HtmlForm loginForm = page.getForms().get(0);
+        loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+        loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+        page = loginForm.getButtonByName(""login"").click();
+        assertEquals(""Tenant AutoRefresh, refreshed: false"", page.asNormalizedText());
+
+        Cookie sessionCookie = getSessionCookie(webClient, ""tenant-autorefresh"");
+        assertNotNull(sessionCookie);
+    }
+}
+
+@Test
+public void testTokenAutoRefresh() throws IOException {
+    try (final WebClient webClient = createWebClient()) {
+        // Setup: Login to establish session
+        HtmlPage page = webClient.getPage(""http://localhost:8081/tenant-autorefresh"");
+        HtmlForm loginForm = page.getForms().get(0);
+        loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+        loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+        page = loginForm.getButtonByName(""login"").click();
+
+        Cookie sessionCookie = getSessionCookie(webClient, ""tenant-autorefresh"");
+        String idToken = getIdToken(sessionCookie);
+
+        // Auto-refresh-interval is 30 secs so every call auto-refreshes the token
+        // Right now the original ID token is still valid but will be auto-refreshed
+        page = webClient.getPage(""http://localhost:8081/tenant-autorefresh"");
+        assertEquals(""Tenant AutoRefresh, refreshed: true"", page.asNormalizedText());
+        sessionCookie = getSessionCookie(webClient, ""tenant-autorefresh"");
+        assertNotNull(sessionCookie);
+        String nextIdToken = getIdToken(sessionCookie);
+        assertNotEquals(idToken, nextIdToken);
+
+        webClient.getCookieManager().clearCookies();
+    }
+}
+```",TRUE,
+98,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/integration-tests/oidc-tenancy/src/test/java/io/quarkus/it/keycloak/BearerTokenAuthorizationTest.java,testResolveTenantIdentifierWebAppNoDiscovery,"    @Test
+    public void testResolveTenantIdentifierWebAppNoDiscovery() throws IOException {
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient
+                    .getPage(""http://localhost:8081/tenant/tenant-web-app-no-discovery/api/user/webapp-no-discovery"");
+            // State cookie is available but there must be no saved path parameter
+            // as the tenant-web-app configuration does not set a redirect-path property
+            assertNull(getStateCookieSavedPath(webClient, ""tenant-web-app-no-discovery""));
+            assertEquals(""Sign in to quarkus-webapp"", page.getTitleText());
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+            loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+            page = loginForm.getButtonByName(""login"").click();
+            assertEquals(""tenant-web-app-no-discovery:alice"", page.getBody().asNormalizedText());
+
+            page = webClient.getPage(""http://localhost:8081/tenant/tenant-web-app-no-discovery/api/user/webapp-no-discovery"");
+            assertEquals(""tenant-web-app-no-discovery:alice"", page.getBody().asNormalizedText());
+            webClient.getCookieManager().clearCookies();
+        }
+    }",20,"```java
+    @Test
+    public void testResolveTenantIdentifierWebAppNoDiscoveryLogin() throws IOException {
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient
+                    .getPage(""http://localhost:8081/tenant/tenant-web-app-no-discovery/api/user/webapp-no-discovery"");
+            // State cookie is available but there must be no saved path parameter
+            // as the tenant-web-app configuration does not set a redirect-path property
+            assertNull(getStateCookieSavedPath(webClient, ""tenant-web-app-no-discovery""));
+            assertEquals(""Sign in to quarkus-webapp"", page.getTitleText());
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+            loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+            page = loginForm.getButtonByName(""login"").click();
+            assertEquals(""tenant-web-app-no-discovery:alice"", page.getBody().asNormalizedText());
+        }
+    }
+
+    @Test
+    public void testResolveTenantIdentifierWebAppNoDiscoveryPersistence() throws IOException {
+        try (final WebClient webClient = createWebClient()) {
+            HtmlPage page = webClient
+                    .getPage(""http://localhost:8081/tenant/tenant-web-app-no-discovery/api/user/webapp-no-discovery"");
+            HtmlForm loginForm = page.getForms().get(0);
+            loginForm.getInputByName(""username"").setValueAttribute(""alice"");
+            loginForm.getInputByName(""password"").setValueAttribute(""alice"");
+            loginForm.getButtonByName(""login"").click();
+
+            page = webClient.getPage(""http://localhost:8081/tenant/tenant-web-app-no-discovery/api/user/webapp-no-discovery"");
+            assertEquals(""tenant-web-app-no-discovery:alice"", page.getBody().asNormalizedText());
+            webClient.getCookieManager().clearCookies();
+        }
+    }
+```",TRUE,
+99,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/search/context/StrictLineBreakIteratorTest.java,testTraversal,"   @Test
+    void testTraversal() {
+        final String DOC = ""abc\ndef\nghi"";
+        StrictLineBreakIterator it = new StrictLineBreakIterator();
+        it.setText(DOC);
+
+        assertEquals(4, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(8, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(4, it.previous(), ""StrictLineBreakIterator previous()"");
+        assertEquals(0, it.previous(), ""StrictLineBreakIterator previous()"");
+        assertEquals(BreakIterator.DONE, it.previous(), ""StrictLineBreakIterator previous()"");
+        assertEquals(4, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(8, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(11, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(BreakIterator.DONE, it.next(), ""StrictLineBreakIterator next()"");
+
+        assertEquals(0, it.first(), ""StrictLineBreakIterator first()"");
+        assertEquals(4, it.next(), ""StrictLineBreakIterator next()"");
+
+        assertEquals(11, it.last(), ""StrictLineBreakIterator last()"");
+        assertEquals(8, it.previous(), ""StrictLineBreakIterator previous()"");
+    }",22,"```java
+    @Test
+    void testTraversalCycle() {
+        final String DOC = ""abc\ndef\nghi"";
+        StrictLineBreakIterator it = new StrictLineBreakIterator();
+        it.setText(DOC);
+
+        assertEquals(4, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(8, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(4, it.previous(), ""StrictLineBreakIterator previous()"");
+        assertEquals(0, it.previous(), ""StrictLineBreakIterator previous()"");
+        assertEquals(BreakIterator.DONE, it.previous(), ""StrictLineBreakIterator previous()"");
+    }
+
+    @Test
+    void testForwardTraversal() {
+        final String DOC = ""abc\ndef\nghi"";
+        StrictLineBreakIterator it = new StrictLineBreakIterator();
+        it.setText(DOC);
+
+        assertEquals(4, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(8, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(11, it.next(), ""StrictLineBreakIterator next()"");
+        assertEquals(BreakIterator.DONE, it.next(), ""StrictLineBreakIterator next()"");
+    }
+
+    @Test
+    void testFirstAndNext() {
+        final String DOC = ""abc\ndef\nghi"";
+        StrictLineBreakIterator it = new StrictLineBreakIterator();
+        it.setText(DOC);
+
+        assertEquals(0, it.first(), ""StrictLineBreakIterator first()"");
+        assertEquals(4, it.next(), ""StrictLineBreakIterator next()"");
+    }
+
+    @Test
+    void testLastAndPrevious() {
+        final String DOC = ""abc\ndef\nghi"";
+        StrictLineBreakIterator it = new StrictLineBreakIterator();
+        it.setText(DOC);
+
+        assertEquals(11, it.last(), ""StrictLineBreakIterator last()"");
+        assertEquals(8, it.previous(), ""StrictLineBreakIterator previous()"");
+    }
+```",TRUE,
+100,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/search/context/WildCardMatcherTest.java,testMatch,"   @Test
+    void testMatch() {
+        WildCardMatcher m = new WildCardMatcher(""wild?ard"", true); // bug #15644
+        assertEquals(LineMatcher.MATCHED, m.match(""wildcard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildward""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wilddard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wild?ard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildcarde""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""awildcard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildddard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""mildcard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildc?rd""));
+
+        m = new WildCardMatcher(""wild*ard"", true);
+        assertEquals(LineMatcher.MATCHED, m.match(""wildcard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildward""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wilddard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildxyzard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildxyzard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wild""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""ard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildcat""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildcarda""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""mildcard""));
+    }",27,"```java
+@Test
+    void testMatch() {
+        WildCardMatcher m = new WildCardMatcher(""wild?ard"", true); // bug #15644
+        assertEquals(LineMatcher.MATCHED, m.match(""wildcard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildward""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wilddard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wild?ard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildcarde""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""awildcard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildddard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""mildcard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildc?rd""));
+
+        m = new WildCardMatcher(""wild*ard"", true);
+        assertEquals(LineMatcher.MATCHED, m.match(""wildcard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildward""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wilddard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildard""));
+        assertEquals(LineMatcher.MATCHED, m.match(""wildxyzard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wild""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""ard""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildcat""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""wildcarda""));
+        assertEquals(LineMatcher.NOT_MATCHED, m.match(""mildcard""));
+    }
+```",TRUE,
+101,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/util/GetoptTest.java,testParseNormal,"   @Test
+    void testParseNormal() throws Exception {
+        String[] argv = new String[] {""-a"", ""foo"", ""-bc"", ""--"", ""-f""};
+        Getopt instance = new Getopt(argv, ""a:bcr:f"");
+
+        instance.parse();
+
+        assertEquals('a', (char) instance.getOpt());
+        assertEquals(""foo"", instance.getOptarg());
+        assertEquals('b', (char) instance.getOpt());
+        assertNull(instance.getOptarg());
+        assertEquals('c', (char) instance.getOpt());
+        assertNull(instance.getOptarg());
+        assertEquals(-1, instance.getOpt());
+        assertEquals(4, instance.getOptind());
+        assertTrue(instance.getOptind() < argv.length);
+        assertEquals(""-f"", argv[instance.getOptind()]);
+    }",18,"```java
+@Test
+    void testParseOptionA() throws Exception {
+        String[] argv = new String[] {""-a"", ""foo"", ""-bc"", ""--"", ""-f""};
+        Getopt instance = new Getopt(argv, ""a:bcr:f"");
+
+        instance.parse();
+
+        assertEquals('a', (char) instance.getOpt());
+        assertEquals(""foo"", instance.getOptarg());
+    }
+
+    @Test
+    void testParseOptionB() throws Exception {
+        String[] argv = new String[] {""-a"", ""foo"", ""-bc"", ""--"", ""-f""};
+        Getopt instance = new Getopt(argv, ""a:bcr:f"");
+
+        instance.parse();
+        instance.getOpt(); // skip 'a'
+
+        assertEquals('b', (char) instance.getOpt());
+        assertNull(instance.getOptarg());
+    }
+
+    @Test
+    void testParseOptionC() throws Exception {
+        String[] argv = new String[] {""-a"", ""foo"", ""-bc"", ""--"", ""-f""};
+        Getopt instance = new Getopt(argv, ""a:bcr:f"");
+
+        instance.parse();
+        instance.getOpt(); // skip 'a'
+        instance.getOpt(); // skip 'b'
+
+        assertEquals('c', (char) instance.getOpt());
+        assertNull(instance.getOptarg());
+    }
+
+    @Test
+    void testParseFinalState() throws Exception {
+        String[] argv = new String[] {""-a"", ""foo"", ""-bc"", ""--"", ""-f""};
+        Getopt instance = new Getopt(argv, ""a:bcr:f"");
+
+        instance.parse();
+        instance.getOpt(); // skip 'a'
+        instance.getOpt(); // skip 'b'
+        instance.getOpt(); // skip 'c'
+
+        assertEquals(-1, instance.getOpt());
+        assertEquals(4, instance.getOptind());
+        assertTrue(instance.getOptind() < argv.length);
+        assertEquals(""-f"", argv[instance.getOptind()]);
+    }
+```",FALSE,The refactoring resulted in behavioral changes or led to a compilation error
+102,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-web/src/test/java/org/opengrok/web/api/v1/controller/MessagesControllerTest.java,addAndRemoveWithTextTest,"   @Test
+    void addAndRemoveWithTextTest() {
+        final String tag = ""foo"";
+        final String text = ""text"";
+
+        addMessage(text, tag);
+        assertEquals(1, env.getMessages(tag).size());
+
+        removeMessages(tag + ""bar"", text);
+        assertEquals(1, env.getMessages(tag).size());
+
+        removeMessages(tag, text + ""bar"");
+        assertEquals(1, env.getMessages(tag).size());
+
+        removeMessages(tag, text);
+        assertTrue(env.getMessages(tag).isEmpty());
+    }",17,"```java
+    @Test
+    void addMessageIncreasesSize() {
+        final String tag = ""foo"";
+        final String text = ""text"";
+
+        addMessage(text, tag);
+        assertEquals(1, env.getMessages(tag).size());
+    }
+
+    @Test
+    void removeMessagesWithWrongTagDoesNotRemove() {
+        final String tag = ""foo"";
+        final String text = ""text"";
+
+        addMessage(text, tag);
+        removeMessages(tag + ""bar"", text);
+        assertEquals(1, env.getMessages(tag).size());
+    }
+
+    @Test
+    void removeMessagesWithWrongTextDoesNotRemove() {
+        final String tag = ""foo"";
+        final String text = ""text"";
+
+        addMessage(text, tag);
+        removeMessages(tag, text + ""bar"");
+        assertEquals(1, env.getMessages(tag).size());
+    }
+
+    @Test
+    void removeMessagesWithCorrectParamsRemovesMessage() {
+        final String tag = ""foo"";
+        final String text = ""text"";
+
+        addMessage(text, tag);
+        removeMessages(tag, text);
+        assertTrue(env.getMessages(tag).isEmpty());
+    }
+```",TRUE,
+103,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-web/src/test/java/org/opengrok/web/api/v1/controller/MessagesControllerTest.java,addAndRemoveDifferentTagsTest,"   @Test
+    void addAndRemoveDifferentTagsTest() {
+        addMessage(""test"", ""tag1"");
+        addMessage(""test"", ""tag2"");
+
+        assertEquals(1, env.getMessages(""tag1"").size());
+        assertEquals(1, env.getMessages(""tag2"").size());
+
+        removeMessages(""tag1"");
+
+        assertEquals(0, env.getMessages(""tag1"").size());
+        assertEquals(1, env.getMessages(""tag2"").size());
+
+        removeMessages(""tag2"");
+
+        assertTrue(env.getMessages(""tag2"").isEmpty());
+    }",17,"```java
+    @Test
+    void addDifferentTagsTest() {
+        addMessage(""test"", ""tag1"");
+        addMessage(""test"", ""tag2"");
+
+        assertEquals(1, env.getMessages(""tag1"").size());
+        assertEquals(1, env.getMessages(""tag2"").size());
+    }
+
+    @Test
+    void removeTagIsolationTest() {
+        addMessage(""test"", ""tag1"");
+        addMessage(""test"", ""tag2"");
+
+        removeMessages(""tag1"");
+
+        assertEquals(0, env.getMessages(""tag1"").size());
+        assertEquals(1, env.getMessages(""tag2"").size());
+    }
+
+    @Test
+    void removeTagEmptyTest() {
+        addMessage(""test"", ""tag2"");
+
+        removeMessages(""tag2"");
+
+        assertTrue(env.getMessages(""tag2"").isEmpty());
+    }
+```",FALSE,The refactoring resulted in behavioral changes or led to a compilation error
+104,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/flowable/flowable-engine,https://raw.githubusercontent.com/flowable/flowable-engine/main/modules/flowable-app-engine-spring/src/test/java/org/flowable/app/spring/test/autodeployment/SpringAutoDeployTest.java,testNoRedeploymentForSpringContainerRestart,"    @Test
+    public void testNoRedeploymentForSpringContainerRestart() throws Exception {
+        createAppContextWithoutDeploymentMode();
+        AppDeploymentQuery deploymentQuery = repositoryService.createDeploymentQuery();
+        assertThat(deploymentQuery.count()).isEqualTo(1);
+        AppDefinitionQuery appDefinitionQuery = repositoryService.createAppDefinitionQuery();
+        assertThat(appDefinitionQuery.count()).isEqualTo(1);
+
+        // Creating a new app context with same resources doesn't lead to more deployments
+        createAppContextWithoutDeploymentMode();
+        assertThat(deploymentQuery.count()).isEqualTo(1);
+        assertThat(appDefinitionQuery.count()).isEqualTo(1);
+    }",13,"```java
+    @Test
+    public void testInitialDeploymentCount() throws Exception {
+        createAppContextWithoutDeploymentMode();
+        AppDeploymentQuery deploymentQuery = repositoryService.createDeploymentQuery();
+        assertThat(deploymentQuery.count()).isEqualTo(1);
+        AppDefinitionQuery appDefinitionQuery = repositoryService.createAppDefinitionQuery();
+        assertThat(appDefinitionQuery.count()).isEqualTo(1);
+    }
+
+    @Test
+    public void testNoRedeploymentForSpringContainerRestart() throws Exception {
+        createAppContextWithoutDeploymentMode();
+        AppDeploymentQuery deploymentQuery = repositoryService.createDeploymentQuery();
+        AppDefinitionQuery appDefinitionQuery = repositoryService.createAppDefinitionQuery();
+
+        // Creating a new app context with same resources doesn't lead to more deployments
+        createAppContextWithoutDeploymentMode();
+        assertThat(deploymentQuery.count()).isEqualTo(1);
+        assertThat(appDefinitionQuery.count()).isEqualTo(1);
+    }
+```",TRUE,
+105,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/flowable/flowable-engine,https://raw.githubusercontent.com/flowable/flowable-engine/main/modules/flowable-camel/src/test/java/org/flowable/camel/EmptyProcessTest.java,testRunProcessWithHeader,"    public void testRunProcessWithHeader() throws Exception {
+        CamelContext ctx = applicationContext.getBean(CamelContext.class);
+        ProducerTemplate tpl = camelContext.createProducerTemplate();
+        String body = ""body text"";
+        Exchange exchange = ctx.getEndpoint(""direct:startEmptyWithHeader"").createExchange();
+        exchange.getIn().setBody(body);
+        tpl.send(""direct:startEmptyWithHeader"", exchange);
+
+        String instanceId = (String) exchange.getProperty(""PROCESS_ID_PROPERTY"");
+        assertProcessEnded(instanceId);
+        HistoricVariableInstance var = processEngine.getHistoryService().createHistoricVariableInstanceQuery().variableName(""camelBody"").singleResult();
+        assertThat(var).isNotNull();
+        assertThat(var.getValue()).isEqualTo(body);
+        var = processEngine.getHistoryService().createHistoricVariableInstanceQuery().variableName(""MyVar"").singleResult();
+        assertThat(var).isNotNull();
+        assertThat(var.getValue()).isEqualTo(""Foo"");
+    }",17,"```java
+    @Test
+    public void testRunProcessWithHeader_CamelBody() throws Exception {
+        CamelContext ctx = applicationContext.getBean(CamelContext.class);
+        ProducerTemplate tpl = camelContext.createProducerTemplate();
+        String body = ""body text"";
+        Exchange exchange = ctx.getEndpoint(""direct:startEmptyWithHeader"").createExchange();
+        exchange.getIn().setBody(body);
+        tpl.send(""direct:startEmptyWithHeader"", exchange);
+
+        String instanceId = (String) exchange.getProperty(""PROCESS_ID_PROPERTY"");
+        assertProcessEnded(instanceId);
+        HistoricVariableInstance var = processEngine.getHistoryService().createHistoricVariableInstanceQuery().variableName(""camelBody"").singleResult();
+        assertThat(var).isNotNull();
+        assertThat(var.getValue()).isEqualTo(body);
+    }
+
+    @Test
+    public void testRunProcessWithHeader_MyVar() throws Exception {
+        CamelContext ctx = applicationContext.getBean(CamelContext.class);
+        ProducerTemplate tpl = camelContext.createProducerTemplate();
+        String body = ""body text"";
+        Exchange exchange = ctx.getEndpoint(""direct:startEmptyWithHeader"").createExchange();
+        exchange.getIn().setBody(body);
+        tpl.send(""direct:startEmptyWithHeader"", exchange);
+
+        String instanceId = (String) exchange.getProperty(""PROCESS_ID_PROPERTY"");
+        assertProcessEnded(instanceId);
+        HistoricVariableInstance var = processEngine.getHistoryService().createHistoricVariableInstanceQuery().variableName(""MyVar"").singleResult();
+        assertThat(var).isNotNull();
+        assertThat(var.getValue()).isEqualTo(""Foo"");
+    }
+```",TRUE,
+106,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/AnalyzerGuruTest.java,matchesFullName,"   @Test
+    void matchesFullName() {
+        String s = File.separator;  // so test works on Unix and Windows
+        String path = s + ""path"" + s + ""to"" + s + ""Makefile"";
+        AnalyzerFactory faf = AnalyzerGuru.find(path);
+        assertSame(ShAnalyzerFactory.class, faf.getClass());
+        faf = AnalyzerGuru.find(""GNUMakefile"");
+        assertSame(ShAnalyzerFactory.class, faf.getClass());
+    }",9,"@Test
+    void matchesFullName() {
+        String s = File.separator;  // so test works on Unix and Windows
+        String path = s + ""path"" + s + ""to"" + s + ""Makefile"";
+        AnalyzerFactory faf = AnalyzerGuru.find(path);
+        assertSame(ShAnalyzerFactory.class, faf.getClass());
+    }
+
+    @Test
+    void matchesGNUmakefile() {
+        AnalyzerFactory faf = AnalyzerGuru.find(""GNUMakefile"");
+        assertSame(ShAnalyzerFactory.class, faf.getClass());
+    }",TRUE,
+107,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/plugins/src/test/java/opengrok/auth/plugin/UserPluginTest.java,testTimeoutedUser,"   @Test
+    void testTimeoutedUser() {
+        HttpServletRequest req;
+        assertFalse(plugin.isAllowed(req = createRequest(""007"", true), new Group()));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+        assertFalse(plugin.isAllowed(req = createRequest(""008"", true), new Project()));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+        assertFalse(plugin.isAllowed(req = createRequest(""009"", true), createGroup(""some group"")));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+        assertFalse(plugin.isAllowed(req = createRequest(""00A"", true), createProject(""some project"")));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+    }",12,"```java
+    @Test
+    void testTimeoutedUserWithGroup() {
+        HttpServletRequest req = createRequest(""007"", true);
+        assertFalse(plugin.isAllowed(req, new Group()));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+    }
+
+    @Test
+    void testTimeoutedUserWithProject() {
+        HttpServletRequest req = createRequest(""008"", true);
+        assertFalse(plugin.isAllowed(req, new Project()));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+    }
+
+    @Test
+    void testTimeoutedUserWithCustomGroup() {
+        HttpServletRequest req = createRequest(""009"", true);
+        assertFalse(plugin.isAllowed(req, createGroup(""some group"")));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+    }
+
+    @Test
+    void testTimeoutedUserWithCustomProject() {
+        HttpServletRequest req = createRequest(""00A"", true);
+        assertFalse(plugin.isAllowed(req, createProject(""some project"")));
+        assertNull(req.getAttribute(UserPlugin.REQUEST_ATTR));
+    }
+```",TRUE,
+108,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/test/src/test/java/jenkins/security/stapler/StaticRoutingDecisionProviderTest.java,doAction_regular,"    @Test
+    public void doAction_regular() throws Exception {
+        assertReachable(""do-action/action/"");
+
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+
+        assertReachable(""do-action/action/"");
+
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).remove(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+
+        assertReachable(""do-action/action/"");
+
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).addBlacklistSignature(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+
+        assertNotReachable(""do-action/action/"");
+        assertDoActionRequestWasBlockedAndResetFlag();
+
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).removeBlacklistSignature(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+
+        assertReachable(""do-action/action/"");
+    }",21,"```java
+    @Test
+    public void doAction_initial() throws Exception {
+        assertReachable(""do-action/action/"");
+    }
+
+    @Test
+    public void doAction_whitelistAdd() throws Exception {
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+        assertReachable(""do-action/action/"");
+    }
+
+    @Test
+    public void doAction_whitelistRemove() throws Exception {
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).remove(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+        assertReachable(""do-action/action/"");
+    }
+
+    @Test
+    public void doAction_blacklistAdd() throws Exception {
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).addBlacklistSignature(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+        assertNotReachable(""do-action/action/"");
+        assertDoActionRequestWasBlockedAndResetFlag();
+    }
+
+    @Test
+    public void doAction_blacklistRemove() throws Exception {
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).addBlacklistSignature(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).removeBlacklistSignature(ActionWithWhitelist.DO_ACTION_SIGNATURE);
+        assertReachable(""do-action/action/"");
+    }
+```",TRUE,
+109,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/clojure/ClojureAnalyzerFactoryTest.java,testScopeAnalyzer,"   @Test
+    void testScopeAnalyzer() throws Exception {
+        String path = repository.getSourceRoot() + ""/clojure/sample.clj"";
+        File f = new File(path);
+        assertTrue(f.canRead() && f.isFile(), ""clojure testfile "" + f + "" not found"");
+
+        Document doc = new Document();
+        doc.add(new Field(QueryBuilder.FULLPATH, path,
+                          string_ft_nstored_nanalyzed_norms));
+        StringWriter xrefOut = new StringWriter();
+        analyzer.setCtags(ctags);
+        analyzer.analyze(doc, getStreamSource(path), xrefOut);
+
+        Definitions definitions = Definitions.deserialize(doc.getField(QueryBuilder.TAGS).binaryValue().bytes);
+
+        String[] type = new String[1];
+        assertTrue(definitions.hasDefinitionAt(""opengrok"", 4, type));
+        assertThat(type[0], is(""namespace""));
+        assertTrue(definitions.hasDefinitionAt(""power-set"", 8, type));
+        assertThat(type[0], is(""function""));
+        assertTrue(definitions.hasDefinitionAt(""power-set-private"", 14, type));
+        assertThat(type[0], is(""privateFunction""));
+        assertTrue(definitions.hasDefinitionAt(""author"", 19, type));
+        assertThat(type[0], is(""struct""));
+        assertTrue(definitions.hasDefinitionAt(""author-first-name"", 22, type));
+        assertThat(type[0], is(""definition""));
+        assertTrue(definitions.hasDefinitionAt(""Farid"", 24, type));
+        assertThat(type[0], is(""definition""));
+    }",29,"```java
+    @ParameterizedTest
+    @CsvSource({
+        ""opengrok, 4, namespace"",
+        ""power-set, 8, function"",
+        ""power-set-private, 14, privateFunction"",
+        ""author, 19, struct"",
+        ""author-first-name, 22, definition"",
+        ""Farid, 24, definition""
+    })
+    void testScopeAnalyzer(String name, int line, String expectedType) throws Exception {
+        String path = repository.getSourceRoot() + ""/clojure/sample.clj"";
+        File f = new File(path);
+        assertTrue(f.canRead() && f.isFile(), ""clojure testfile "" + f + "" not found"");
+
+        Document doc = new Document();
+        doc.add(new Field(QueryBuilder.FULLPATH, path,
+                          string_ft_nstored_nanalyzed_norms));
+        StringWriter xrefOut = new StringWriter();
+        analyzer.setCtags(ctags);
+        analyzer.analyze(doc, getStreamSource(path), xrefOut);
+
+        Definitions definitions = Definitions.deserialize(doc.getField(QueryBuilder.TAGS).binaryValue().bytes);
+
+        String[] type = new String[1];
+        assertTrue(definitions.hasDefinitionAt(name, line, type));
+        assertThat(type[0], is(expectedType));
+    }
+```",FALSE,The refactoring resulted in behavioral changes or led to a compilation error
+110,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/test/src/test/java/jenkins/security/stapler/StaticRoutingDecisionProviderTest.java,getItem_getterWithStaplerNotDispatchable,"    @Test
+    public void getItem_getterWithStaplerNotDispatchable() throws Exception {
+        assertNotReachable(""getter/itemWithStaplerNotDispatchable/"");
+        assertGetMethodRequestWasBlockedAndResetFlag();
+        assertNotReachable(""getter/itemWithStaplerNotDispatchable/valid"");
+        assertGetMethodRequestWasBlockedAndResetFlag();
+
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(GetterWithWhitelist.GET_ITEM_STAPLER_NONROUTABLE_SIGNATURE);
+
+        // Annotation overrides whitelist/blacklist
+        assertNotReachable(""getter/itemWithStaplerNotDispatchable/"");
+        assertGetMethodRequestWasBlockedAndResetFlag();
+        assertNotReachable(""getter/itemWithStaplerNotDispatchable/valid"");
+        assertGetMethodRequestWasBlockedAndResetFlag();
+    }",15,"```java
+@Test
+public void getItem_getterWithStaplerNotDispatchable() throws Exception {
+    assertNotReachable(""getter/itemWithStaplerNotDispatchable/"");
+    assertGetMethodRequestWasBlockedAndResetFlag();
+    assertNotReachable(""getter/itemWithStaplerNotDispatchable/valid"");
+    assertGetMethodRequestWasBlockedAndResetFlag();
+}
+
+@Test
+public void getItem_getterWithStaplerNotDispatchable_AfterRoutingDecision() throws Exception {
+    ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(GetterWithWhitelist.GET_ITEM_STAPLER_NONROUTABLE_SIGNATURE);
+
+    // Annotation overrides whitelist/blacklist
+    assertNotReachable(""getter/itemWithStaplerNotDispatchable/"");
+    assertGetMethodRequestWasBlockedAndResetFlag();
+    assertNotReachable(""getter/itemWithStaplerNotDispatchable/valid"");
+    assertGetMethodRequestWasBlockedAndResetFlag();
+}
+```",TRUE,
+111,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/DefinitionsTest.java,getSymbols,"   @Test
+    void getSymbols() {
+        Definitions instance = new Definitions();
+        Set<String> result = instance.getSymbols();
+        assertNotNull(result);
+        assertEquals(0, result.size());
+        instance.addTag(1, ""found"", """", """", 0, 0);
+        result = instance.getSymbols();
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }",11,"@Test
+    void getSymbols_InitiallyEmpty() {
+        Definitions instance = new Definitions();
+        Set<String> result = instance.getSymbols();
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void getSymbols_AfterAddingTag() {
+        Definitions instance = new Definitions();
+        instance.addTag(1, ""found"", """", """", 0, 0);
+        Set<String> result = instance.getSymbols();
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }",TRUE,
+112,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/test/src/test/java/jenkins/security/stapler/StaticRoutingDecisionProviderTest.java,fieldStatic_withStaplerNotDispatchable,"    @Test
+    public void fieldStatic_withStaplerNotDispatchable() throws Exception {
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/"");
+        assertFieldRequestWasBlockedAndResetFlag();
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/valid"");
+        assertFieldRequestWasBlockedAndResetFlag();
+
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(FieldWithWhitelist.FIELD_STATIC_STAPLER_NONROUTABLE_SIGNATURE);
+
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/"");
+        assertFieldRequestWasBlockedAndResetFlag();
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/valid"");
+        assertFieldRequestWasBlockedAndResetFlag();
+    }",14,"```java
+    @Test
+    public void fieldStatic_withStaplerNotDispatchable_Initial() throws Exception {
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/"");
+        assertFieldRequestWasBlockedAndResetFlag();
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/valid"");
+        assertFieldRequestWasBlockedAndResetFlag();
+    }
+
+    @Test
+    public void fieldStatic_withStaplerNotDispatchable_AfterAddingSignature() throws Exception {
+        ExtensionList.lookupSingleton(StaticRoutingDecisionProvider.class).add(FieldWithWhitelist.FIELD_STATIC_STAPLER_NONROUTABLE_SIGNATURE);
+
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/"");
+        assertFieldRequestWasBlockedAndResetFlag();
+        assertNotReachable(""field/staticRenderableWithStaplerNotDispatchable/valid"");
+        assertFieldRequestWasBlockedAndResetFlag();
+    }
+```",TRUE,
+113,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/test/src/test/java/lib/form/EnumTest.java,testSelectionNoDefault,"    @Test
+    public void testSelectionNoDefault() throws Exception {
+        HtmlForm form = getForm(""noDefault"");
+        HtmlSelect select;
+
+        select = form.getSelectByName(""enum1"");
+        assertEquals(BallColor.values().length, select.getOptionSize());
+        assertEquals(BallColor.YELLOW.name(), select.getDefaultValue());
+
+        select = form.getSelectByName(""enum2"");
+        assertEquals(BallColor.values().length, select.getOptionSize());
+        assertEquals(BallColor.values()[0].name(), select.getDefaultValue());
+    }",13,"```java
+    @Test
+    public void testSelectionNoDefaultEnum1() throws Exception {
+        HtmlForm form = getForm(""noDefault"");
+        HtmlSelect select = form.getSelectByName(""enum1"");
+        assertEquals(BallColor.values().length, select.getOptionSize());
+        assertEquals(BallColor.YELLOW.name(), select.getDefaultValue());
+    }
+
+    @Test
+    public void testSelectionNoDefaultEnum2() throws Exception {
+        HtmlForm form = getForm(""noDefault"");
+        HtmlSelect select = form.getSelectByName(""enum2"");
+        assertEquals(BallColor.values().length, select.getOptionSize());
+        assertEquals(BallColor.values()[0].name(), select.getDefaultValue());
+    }
+```",TRUE,
+114,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-driver/src/test/java/org/janusgraph/graphdb/tinkerpop/plugin/JanusGraphGremlinDriverPluginTest.java,shouldImportDeclaringClass,"    @Test
+    public void shouldImportDeclaringClass() {
+        final JanusGraphGremlinDriverPlugin plugin = JanusGraphGremlinDriverPlugin.instance();
+        final ImportCustomizer customizer = (ImportCustomizer) plugin.getCustomizers().get()[0];
+        final Set<Class> classes = customizer.getClassImports();
+
+        for (final Method m : customizer.getMethodImports()) {
+            final Class c = m.getDeclaringClass();
+            assertTrue(classes.contains(c), ""CLASS_IMPORTS is missing "" + c.getCanonicalName());
+        }
+
+        for (final Enum e : customizer.getEnumImports()) {
+            final Class c = e.getDeclaringClass();
+            assertTrue(classes.contains(c), ""CLASS_IMPORTS is missing "" + c.getCanonicalName());
+        }
+    }",16,"@Test
+    public void shouldImportDeclaringClassOfMethodImports() {
+        final JanusGraphGremlinDriverPlugin plugin = JanusGraphGremlinDriverPlugin.instance();
+        final ImportCustomizer customizer = (ImportCustomizer) plugin.getCustomizers().get()[0];
+        final Set<Class> classes = customizer.getClassImports();
+
+        for (final Method m : customizer.getMethodImports()) {
+            final Class c = m.getDeclaringClass();
+            assertTrue(classes.contains(c), ""CLASS_IMPORTS is missing "" + c.getCanonicalName());
+        }
+    }
+
+    @Test
+    public void shouldImportDeclaringClassOfEnumImports() {
+        final JanusGraphGremlinDriverPlugin plugin = JanusGraphGremlinDriverPlugin.instance();
+        final ImportCustomizer customizer = (ImportCustomizer) plugin.getCustomizers().get()[0];
+        final Set<Class> classes = customizer.getClassImports();
+
+        for (final Enum e : customizer.getEnumImports()) {
+            final Class c = e.getDeclaringClass();
+            assertTrue(classes.contains(c), ""CLASS_IMPORTS is missing "" + c.getCanonicalName());
+        }
+    }",TRUE,
+115,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/sentinel/SentinelCommandIntegrationTests.java,sentinelConnectWith,"   @Test
+    void sentinelConnectWith() {
+
+        RedisURI uri = RedisURI.Builder.sentinel(TestSettings.host(), 1234, SentinelTestSettings.MASTER_ID)
+                .withSentinel(TestSettings.host()).build();
+
+        RedisSentinelCommands<String, String> sentinelConnection = this.redisClient.connectSentinel(uri).sync();
+        assertThat(sentinelConnection.ping()).isEqualTo(""PONG"");
+
+        sentinelConnection.getStatefulConnection().close();
+
+        RedisCommands<String, String> connection2 = this.redisClient.connect(uri).sync();
+        assertThat(connection2.ping()).isEqualTo(""PONG"");
+        connection2.quit();
+
+        Wait.untilTrue(() -> connection2.getStatefulConnection().isOpen()).waitOrTimeout();
+
+        assertThat(connection2.ping()).isEqualTo(""PONG"");
+        connection2.getStatefulConnection().close();
+    }",20,"```java
+    @Test
+    void sentinelConnectSentinel() {
+        RedisURI uri = RedisURI.Builder.sentinel(TestSettings.host(), 1234, SentinelTestSettings.MASTER_ID)
+                .withSentinel(TestSettings.host()).build();
+
+        RedisSentinelCommands<String, String> sentinelConnection = this.redisClient.connectSentinel(uri).sync();
+        assertThat(sentinelConnection.ping()).isEqualTo(""PONG"");
+        sentinelConnection.getStatefulConnection().close();
+    }
+
+    @Test
+    void sentinelConnectRegular() {
+        RedisURI uri = RedisURI.Builder.sentinel(TestSettings.host(), 1234, SentinelTestSettings.MASTER_ID)
+                .withSentinel(TestSettings.host()).build();
+
+        RedisCommands<String, String> connection = this.redisClient.connect(uri).sync();
+        assertThat(connection.ping()).isEqualTo(""PONG"");
+        connection.quit();
+    }
+
+    @Test
+    void sentinelConnectAfterQuit() {
+        RedisURI uri = RedisURI.Builder.sentinel(TestSettings.host(), 1234, SentinelTestSettings.MASTER_ID)
+                .withSentinel(TestSettings.host()).build();
+
+        RedisCommands<String, String> connection = this.redisClient.connect(uri).sync();
+        connection.quit();
+
+        Wait.untilTrue(() -> connection.getStatefulConnection().isOpen()).waitOrTimeout();
+
+        assertThat(connection.ping()).isEqualTo(""PONG"");
+        connection.getStatefulConnection().close();
+    }
+```",TRUE,
+116,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/sentinel/SentinelServerCommandIntegrationTests.java,clientGetSetname,"    @Test
+    public void clientGetSetname() {
+        assertThat(sentinel.clientGetname()).isNull();
+        assertThat(sentinel.clientSetname(""test"")).isEqualTo(""OK"");
+        assertThat(sentinel.clientGetname()).isEqualTo(""test"");
+        assertThat(sentinel.clientSetname("""")).isEqualTo(""OK"");
+        assertThat(sentinel.clientGetname()).isNull();
+    }",8,"```java
+    @Test
+    public void clientGetnameInitiallyIsNull() {
+        assertThat(sentinel.clientGetname()).isNull();
+    }
+
+    @Test
+    public void clientSetAndGetname() {
+        assertThat(sentinel.clientSetname(""test"")).isEqualTo(""OK"");
+        assertThat(sentinel.clientGetname()).isEqualTo(""test"");
+    }
+
+    @Test
+    public void clientClearNameBySettingEmpty() {
+        sentinel.clientSetname(""test"");
+        assertThat(sentinel.clientSetname("""")).isEqualTo(""OK"");
+        assertThat(sentinel.clientGetname()).isNull();
+    }
+```",TRUE,
+117,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/SslIntegrationTests.java,pubSubSsl,"    void pubSubSsl() {
+
+        RedisPubSubCommands<String, String> connection = redisClient.connectPubSub(URI_NO_VERIFY).sync();
+        connection.subscribe(""c1"");
+        connection.subscribe(""c2"");
+
+        RedisPubSubCommands<String, String> connection2 = redisClient.connectPubSub(URI_NO_VERIFY).sync();
+
+        assertThat(connection2.pubsubChannels()).contains(""c1"", ""c2"");
+        connection.quit();
+        Wait.untilTrue(connection.getStatefulConnection()::isOpen).waitOrTimeout();
+        Wait.untilEquals(2, () -> connection2.pubsubChannels().size()).during(Duration.ofSeconds(120)).waitOrTimeout();
+
+        assertThat(connection2.pubsubChannels()).contains(""c1"", ""c2"");
+    }",15,"```java
+@Test
+void pubSubSslInitial() {
+    RedisPubSubCommands<String, String> connection = redisClient.connectPubSub(URI_NO_VERIFY).sync();
+    connection.subscribe(""c1"");
+    connection.subscribe(""c2"");
+
+    RedisPubSubCommands<String, String> connection2 = redisClient.connectPubSub(URI_NO_VERIFY).sync();
+
+    assertThat(connection2.pubsubChannels()).contains(""c1"", ""c2"");
+}
+
+@Test
+void pubSubSslAfterQuit() {
+    RedisPubSubCommands<String, String> connection = redisClient.connectPubSub(URI_NO_VERIFY).sync();
+    connection.subscribe(""c1"");
+    connection.subscribe(""c2"");
+
+    RedisPubSubCommands<String, String> connection2 = redisClient.connectPubSub(URI_NO_VERIFY).sync();
+
+    connection.quit();
+    Wait.untilTrue(connection.getStatefulConnection()::isOpen).waitOrTimeout();
+    Wait.untilEquals(2, () -> connection2.pubsubChannels().size()).during(Duration.ofSeconds(120)).waitOrTimeout();
+
+    assertThat(connection2.pubsubChannels()).contains(""c1"", ""c2"");
+}
+```",TRUE,
+118,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/support/AsyncPoolWithValidationUnitTests.java,shouldTestObjectOnBorrowFailState,"   @Test
+    void shouldTestObjectOnBorrowFailState() {
+
+        mockCreation();
+        when(factory.validate(any())).thenReturn(failed(new RedisException(""foo"")));
+
+        BoundedAsyncPool<String> pool = new BoundedAsyncPool<>(factory, BoundedPoolConfig.builder().testOnAcquire().build());
+
+        pool.release(TestFutures.getOrTimeout(pool.acquire()));
+
+        assertThat(pool.getIdle()).isEqualTo(1);
+        assertThat(pool.getObjectCount()).isEqualTo(1);
+        assertThat(pool.getCreationInProgress()).isZero();
+
+        CompletableFuture<String> acquire = pool.acquire();
+
+        assertThat(acquire).isCompletedWithValue(""2"");
+
+        assertThat(pool.getIdle()).isEqualTo(0);
+        assertThat(pool.getObjectCount()).isEqualTo(1);
+        assertThat(pool.getCreationInProgress()).isZero();
+    }",22,"```java
+    @Test
+    void shouldHaveCorrectStateAfterRelease() {
+        mockCreation();
+        when(factory.validate(any())).thenReturn(failed(new RedisException(""foo"")));
+
+        BoundedAsyncPool<String> pool = new BoundedAsyncPool<>(factory, BoundedPoolConfig.builder().testOnAcquire().build());
+
+        pool.release(TestFutures.getOrTimeout(pool.acquire()));
+
+        assertThat(pool.getIdle()).isEqualTo(1);
+        assertThat(pool.getObjectCount()).isEqualTo(1);
+        assertThat(pool.getCreationInProgress()).isZero();
+    }
+
+    @Test
+    void shouldHaveCorrectStateAfterAcquireFail() {
+        mockCreation();
+        when(factory.validate(any())).thenReturn(failed(new RedisException(""foo"")));
+
+        BoundedAsyncPool<String> pool = new BoundedAsyncPool<>(factory, BoundedPoolConfig.builder().testOnAcquire().build());
+
+        pool.release(TestFutures.getOrTimeout(pool.acquire()));
+
+        CompletableFuture<String> acquire = pool.acquire();
+
+        assertThat(acquire).isCompletedWithValue(""2"");
+        assertThat(pool.getIdle()).isEqualTo(0);
+        assertThat(pool.getObjectCount()).isEqualTo(1);
+        assertThat(pool.getCreationInProgress()).isZero();
+    }
+```",TRUE,
+119,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/MarkupTextTest.java,adjacent,"    @Test
+    public void adjacent() {
+        MarkupText text = new MarkupText(""abcdef"");
+        text.addMarkup(0, 3, ""$"", ""$"");
+        text.addMarkup(3, 6, ""#"", ""#"");
+        assertEquals(""$abc$#def#"", text.toString(false));
+
+        text = new MarkupText(""abcdef"");
+        text.addMarkup(3, 6, ""#"", ""#"");
+        text.addMarkup(0, 3, ""$"", ""$"");
+        assertEquals(""$abc$#def#"", text.toString(false));
+    }",12,"@Test
+    public void adjacentForward() {
+        MarkupText text = new MarkupText(""abcdef"");
+        text.addMarkup(0, 3, ""$"", ""$"");
+        text.addMarkup(3, 6, ""#"", ""#"");
+        assertEquals(""$abc$#def#"", text.toString(false));
+    }
+
+    @Test
+    public void adjacentBackward() {
+        MarkupText text = new MarkupText(""abcdef"");
+        text.addMarkup(3, 6, ""#"", ""#"");
+        text.addMarkup(0, 3, ""$"", ""$"");
+        assertEquals(""$abc$#def#"", text.toString(false));
+    }",TRUE,
+120,gemma4:31b,2026-06-10,Duplicate Assert,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/ActionableTest.java,testExtensionOverrides,"    @Test
+    public void testExtensionOverrides() {
+        ActionableOverride myOverridden = new ActionableOverride();
+        InvisibleAction invis = new InvisibleAction() {
+        };
+        myOverridden.addAction(invis);
+        Assert.assertArrayEquals(new Object[]{invis}, myOverridden.specialActions.toArray());
+        Assert.assertArrayEquals(new Object[]{invis}, myOverridden.getActions().toArray());
+
+        myOverridden.getActions().remove(invis);
+        Assert.assertArrayEquals(new Object[]{}, myOverridden.specialActions.toArray());
+        Assert.assertArrayEquals(new Object[]{}, myOverridden.getActions().toArray());
+
+        myOverridden.addAction(invis);
+        myOverridden.removeAction(invis);
+        Assert.assertArrayEquals(new Object[]{}, myOverridden.specialActions.toArray());
+        Assert.assertArrayEquals(new Object[]{}, myOverridden.getActions().toArray());
+
+        InvisibleAction invis2 = new InvisibleAction() {};
+        myOverridden.addOrReplaceAction(invis2);
+        Assert.assertArrayEquals(new Object[]{invis2}, myOverridden.specialActions.toArray());
+        Assert.assertArrayEquals(new Object[]{invis2}, myOverridden.getActions().toArray());
+
+        myOverridden.addOrReplaceAction(invis);
+        myOverridden.addOrReplaceAction(invis);
+        Assert.assertArrayEquals(new Object[]{invis2, invis}, myOverridden.specialActions.toArray());
+        Assert.assertArrayEquals(new Object[]{invis2, invis}, myOverridden.getActions().toArray());
+    }",28,"```java
+    @Test
+    public void testAddAndRemoveViaGetActions() {
+        ActionableOverride myOverridden = new ActionableOverride();
+        InvisibleAction invis = new InvisibleAction() {};
+        myOverridden.addAction(invis);
+        Assertions.assertArrayEquals(new Object[]{invis}, myOverridden.specialActions.toArray());
+        Assertions.assertArrayEquals(new Object[]{invis}, myOverridden.getActions().toArray());
+
+        myOverridden.getActions().remove(invis);
+        Assertions.assertArrayEquals(new Object[]{}, myOverridden.specialActions.toArray());
+        Assertions.assertArrayEquals(new Object[]{}, myOverridden.getActions().toArray());
+    }
+
+    @Test
+    public void testAddAndRemoveViaRemoveAction() {
+        ActionableOverride myOverridden = new ActionableOverride();
+        InvisibleAction invis = new InvisibleAction() {};
+        myOverridden.addAction(invis);
+        myOverridden.removeAction(invis);
+        Assertions.assertArrayEquals(new Object[]{}, myOverridden.specialActions.toArray());
+        Assertions.assertArrayEquals(new Object[]{}, myOverridden.getActions().toArray());
+    }
+
+    @Test
+    public void testAddOrReplaceAction() {
+        ActionableOverride myOverridden = new ActionableOverride();
+        InvisibleAction invis = new InvisibleAction() {};
+        InvisibleAction invis2 = new InvisibleAction() {};
+        myOverridden.addOrReplaceAction(invis2);
+        Assertions.assertArrayEquals(new Object[]{invis2}, myOverridden.specialActions.toArray());
+        Assertions.assertArrayEquals(new Object[]{invis2}, myOverridden.getActions().toArray());
+
+        myOverridden.addOrReplaceAction(invis);
+        myOverridden.addOrReplaceAction(invis);
+        Assertions.assertArrayEquals(new Object[]{invis2, invis}, myOverridden.specialActions.toArray());
+        Assertions.assertArrayEquals(new Object[]{invis2, invis}, myOverridden.getActions().toArray());
+    }
+```",TRUE,

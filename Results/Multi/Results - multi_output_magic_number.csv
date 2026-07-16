@@ -1,0 +1,1049 @@
+Id,LLM,Date,Test Smell,Language,Project,URL,Method,Test Code,Line Count,1° - Detected smell?,1° - Do you agree with detection?,1° - Refactored code,1° -  LLM - Is there still a test smell?,2° - Detected smell?,2° - Do you agree with detection?,3° - Detected smell?,3° - Do you agree with detection?,Result,
+61,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/support/AsyncPoolWithValidationUnitTests.java,shouldRefillIdleObjects,"   @Test
+    void shouldRefillIdleObjects() {
+
+        mockCreation();
+
+        BoundedAsyncPool<String> pool = new BoundedAsyncPool<>(factory,
+                BoundedPoolConfig.builder().maxTotal(20).minIdle(5).build());
+
+        assertThat(pool.getIdle()).isEqualTo(5);
+
+        pool.acquire();
+
+        assertThat(pool.getIdle()).isEqualTo(5);
+        assertThat(pool.getObjectCount()).isEqualTo(6);
+
+        verify(factory, times(6)).create();
+    }",17,TRUE,TRUE,"```java
+@Test
+void shouldRefillIdleObjects() {
+    int maxTotal = 20;
+    int minIdle = 5;
+    int expectedObjectCountAfterAcquire = 6;
+
+    mockCreation();
+
+    BoundedAsyncPool<String> pool = new BoundedAsyncPool<>(factory,
+            BoundedPoolConfig.builder().maxTotal(maxTotal).minIdle(minIdle).build());
+
+    assertThat(pool.getIdle()).isEqualTo(minIdle);
+
+    pool.acquire();
+
+    assertThat(pool.getIdle()).isEqualTo(minIdle);
+    assertThat(pool.getObjectCount()).isEqualTo(expectedObjectCountAfterAcquire);
+
+    verify(factory, times(expectedObjectCountAfterAcquire)).create();
+}
+```",NO,,,,,TRUE,
+62,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/TimeoutOptionsUnitTests.java,fixedConnectionTimeout,"   @Test
+    void fixedConnectionTimeout() {
+
+        TimeoutOptions timeoutOptions = TimeoutOptions.enabled(Duration.ofMinutes(1));
+
+        TimeoutSource source = timeoutOptions.getSource();
+        assertThat(timeoutOptions.isTimeoutCommands()).isTrue();
+        assertThat(timeoutOptions.isApplyConnectionTimeout()).isFalse();
+        assertThat(source.getTimeout(null)).isEqualTo(TimeUnit.MINUTES.toNanos(1));
+    }",10,TRUE,TRUE,"```java
+@Test
+void fixedConnectionTimeout() {
+    final int timeoutMinutes = 1;
+    TimeoutOptions timeoutOptions = TimeoutOptions.enabled(Duration.ofMinutes(timeoutMinutes));
+
+    TimeoutSource source = timeoutOptions.getSource();
+    assertThat(timeoutOptions.isTimeoutCommands()).isTrue();
+    assertThat(timeoutOptions.isApplyConnectionTimeout()).isFalse();
+    assertThat(source.getTimeout(null)).isEqualTo(TimeUnit.MINUTES.toNanos(timeoutMinutes));
+}
+```",NO,,,,,TRUE,
+63,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/support/ConnectionPoolSupportIntegrationTests.java,softRefPoolShouldWorkWithWrappedConnections,"   @Test
+    void softRefPoolShouldWorkWithWrappedConnections() throws Exception {
+
+        SoftReferenceObjectPool<StatefulRedisConnection<String, String>> pool = ConnectionPoolSupport
+                .createSoftReferenceObjectPool(() -> client.connect());
+
+        StatefulRedisConnection<String, String> connection = pool.borrowObject();
+
+        assertThat(channels).hasSize(1);
+
+        RedisCommands<String, String> sync = connection.sync();
+        sync.ping();
+
+        connection.close();
+        pool.close();
+
+        Wait.untilTrue(channels::isEmpty).waitOrTimeout();
+
+        assertThat(channels).isEmpty();
+    }",20,TRUE,TRUE,"```java
+@Test
+void softRefPoolShouldWorkWithWrappedConnections() throws Exception {
+    final int expectedChannelsSize = 1;
+
+    SoftReferenceObjectPool<StatefulRedisConnection<String, String>> pool = ConnectionPoolSupport
+            .createSoftReferenceObjectPool(() -> client.connect());
+
+    StatefulRedisConnection<String, String> connection = pool.borrowObject();
+
+    assertThat(channels).hasSize(expectedChannelsSize);
+
+    RedisCommands<String, String> sync = connection.sync();
+    sync.ping();
+
+    connection.close();
+    pool.close();
+
+    Wait.untilTrue(channels::isEmpty).waitOrTimeout();
+
+    assertThat(channels).isEmpty();
+}
+```",NO,,,,,TRUE,
+64,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/cloud/portability-cloud-google/src/test/java/org/datatransferproject/cloud/google/GoogleCloudIdempotentImportExecutorTest.java,loadCachedValuesFromDataStore,"  @Test
+  public void loadCachedValuesFromDataStore() throws Exception {
+    initializeDS();
+    googleExecutor.setJobId(JOB_ID);
+    assertEquals(googleExecutor.getCachedValue(""id1""), ""idempotentId1"");
+    assertEquals(googleExecutor.getCachedValue(""id2""), ""idempotentId2"");
+    assertEquals(googleExecutor.getCachedValue(""id3""), ""idempotentId3"");
+    assertEquals(googleExecutor.getErrors().size(), 1);
+    assertTrue(googleExecutor.getErrors().contains(
+        ErrorDetail.builder().setId(""id4"").setTitle(""title"").setException(""error"").build()));
+
+    // we shouldn't load any items belonging to JOB_ID_2
+    assertFalse(googleExecutor.isKeyCached(""id1_job2""));
+  }",14,TRUE,TRUE,"```java
+@Test
+public void loadCachedValuesFromDataStore() throws Exception {
+    final int expectedErrorCount = 1;
+    initializeDS();
+    googleExecutor.setJobId(JOB_ID);
+    assertEquals(""idempotentId1"", googleExecutor.getCachedValue(""id1""));
+    assertEquals(""idempotentId2"", googleExecutor.getCachedValue(""id2""));
+    assertEquals(""idempotentId3"", googleExecutor.getCachedValue(""id3""));
+    assertEquals(expectedErrorCount, googleExecutor.getErrors().size());
+    assertTrue(googleExecutor.getErrors().contains(
+        ErrorDetail.builder().setId(""id4"").setTitle(""title"").setException(""error"").build()));
+
+    // we shouldn't load any items belonging to JOB_ID_2
+    assertFalse(googleExecutor.isKeyCached(""id1_job2""));
+}
+```",NO,,,,,TRUE,
+65,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/cloud/portability-cloud-google/src/test/java/org/datatransferproject/cloud/google/GoogleCloudIdempotentImportExecutorTest.java,removeErrorIfItemSucceeds,"  @Test
+  public void removeErrorIfItemSucceeds() throws Exception {
+    initializeDS();
+    googleExecutor.setJobId(JOB_ID);
+    assertTrue(googleExecutor.getErrors().contains(
+        ErrorDetail.builder().setId(""id4"").setTitle(""title"").setException(""error"").build()));
+
+    // now execute a successful import of id4
+    googleExecutor.executeAndSwallowIOExceptions(""id4"", ITEM_NAME, () -> ""idempotentId4"");
+    assertEquals(googleExecutor.getCachedValue(""id4""), ""idempotentId4"");
+    assertEquals(googleExecutor.getErrors().size(), 0);
+
+    // reset the jobId to trigger another read from datastore
+    googleExecutor.setJobId(JOB_ID);
+    assertEquals(googleExecutor.getErrors().size(), 0);
+  }",16,TRUE,TRUE,"```java
+@Test
+public void removeErrorIfItemSucceeds() throws Exception {
+  final int EXPECTED_ERROR_COUNT = 0;
+  initializeDS();
+  googleExecutor.setJobId(JOB_ID);
+  assertTrue(googleExecutor.getErrors().contains(
+      ErrorDetail.builder().setId(""id4"").setTitle(""title"").setException(""error"").build()));
+
+  // now execute a successful import of id4
+  googleExecutor.executeAndSwallowIOExceptions(""id4"", ITEM_NAME, () -> ""idempotentId4"");
+  assertEquals(googleExecutor.getCachedValue(""id4""), ""idempotentId4"");
+  assertEquals(EXPECTED_ERROR_COUNT, googleExecutor.getErrors().size());
+
+  // reset the jobId to trigger another read from datastore
+  googleExecutor.setJobId(JOB_ID);
+  assertEquals(EXPECTED_ERROR_COUNT, googleExecutor.getErrors().size());
+}
+```",NO,,,,,TRUE,
+66,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/data-transfer/portability-data-transfer-facebook/src/test/java/org/datatransferproject/transfer/facebook/photos/FacebookPhotosExporterTest.java,testExportAlbum,"  @Test
+  public void testExportAlbum() throws CopyExceptionWithFailureReason {
+    ExportResult<PhotosContainerResource> result =
+        facebookPhotosExporter.export(
+            uuid, new TokensAndUrlAuthData(""accessToken"", null, null), Optional.empty());
+
+    assertEquals(ExportResult.ResultType.CONTINUE, result.getType());
+    PhotosContainerResource exportedData = result.getExportedData();
+    assertEquals(1, exportedData.getAlbums().size());
+    assertEquals(
+        new PhotoAlbum(ALBUM_ID, ALBUM_NAME, ALBUM_DESCRIPTION),
+        exportedData.getAlbums().toArray()[0]);
+    assertNull(result.getContinuationData().getPaginationData());
+    assertThat(result.getContinuationData().getContainerResources())
+        .contains(new IdOnlyContainerResource(ALBUM_ID));
+  }",16,TRUE,TRUE,"```java
+@Test
+public void testExportAlbum() throws CopyExceptionWithFailureReason {
+    final int expectedAlbumsCount = 1;
+    final int firstAlbumIndex = 0;
+
+    ExportResult<PhotosContainerResource> result =
+        facebookPhotosExporter.export(
+            uuid, new TokensAndUrlAuthData(""accessToken"", null, null), Optional.empty());
+
+    assertEquals(ExportResult.ResultType.CONTINUE, result.getType());
+    PhotosContainerResource exportedData = result.getExportedData();
+    assertEquals(expectedAlbumsCount, exportedData.getAlbums().size());
+    assertEquals(
+        new PhotoAlbum(ALBUM_ID, ALBUM_NAME, ALBUM_DESCRIPTION),
+        exportedData.getAlbums().toArray()[firstAlbumIndex]);
+    assertNull(result.getContinuationData().getPaginationData());
+    assertThat(result.getContinuationData().getContainerResources())
+        .contains(new IdOnlyContainerResource(ALBUM_ID));
+}
+```",NO,,,,,TRUE,
+67,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/data-transfer/portability-data-transfer-facebook/src/test/java/org/datatransferproject/transfer/facebook/photos/FacebookPhotosExporterTest.java,testExportPhoto,"  @Test
+  public void testExportPhoto() throws CopyExceptionWithFailureReason {
+    ExportResult<PhotosContainerResource> result =
+        facebookPhotosExporter.export(
+            uuid,
+            new TokensAndUrlAuthData(""accessToken"", null, null),
+            Optional.of(new ExportInformation(null, new IdOnlyContainerResource(ALBUM_ID))));
+
+    assertEquals(ExportResult.ResultType.END, result.getType());
+    PhotosContainerResource exportedData = result.getExportedData();
+    assertEquals(1, exportedData.getPhotos().size());
+    assertEquals(
+        new PhotoModel(
+            PHOTO_ID + "".jpg"",
+            PHOTO_ID,
+            PHOTO_NAME,
+            ""image/jpg"",
+            PHOTO_ID,
+            ALBUM_ID,
+            false,
+            PHOTO_TIME),
+        exportedData.getPhotos().toArray()[0]);
+  }",23,TRUE,TRUE,"```java
+@Test
+public void testExportPhoto() throws CopyExceptionWithFailureReason {
+    final int expectedPhotosCount = 1;
+    final int firstPhotoIndex = 0;
+
+    ExportResult<PhotosContainerResource> result =
+        facebookPhotosExporter.export(
+            uuid,
+            new TokensAndUrlAuthData(""accessToken"", null, null),
+            Optional.of(new ExportInformation(null, new IdOnlyContainerResource(ALBUM_ID))));
+
+    assertEquals(ExportResult.ResultType.END, result.getType());
+    PhotosContainerResource exportedData = result.getExportedData();
+    assertEquals(expectedPhotosCount, exportedData.getPhotos().size());
+    assertEquals(
+        new PhotoModel(
+            PHOTO_ID + "".jpg"",
+            PHOTO_ID,
+            PHOTO_NAME,
+            ""image/jpg"",
+            PHOTO_ID,
+            ALBUM_ID,
+            false,
+            PHOTO_TIME),
+        exportedData.getPhotos().toArray()[firstPhotoIndex]);
+}
+```",NO,,,,,TRUE,
+68,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/data-transfer/portability-data-transfer-facebook/src/test/java/org/datatransferproject/transfer/facebook/photos/FacebookPhotosExporterTest.java,testSpecifiedAlbums,"  @Test
+  public void testSpecifiedAlbums() throws CopyExceptionWithFailureReason {
+    ExportResult<PhotosContainerResource> result =
+        facebookPhotosExporter.export(
+            uuid,
+            new TokensAndUrlAuthData(""accessToken"", null, null),
+            Optional.of(
+                new ExportInformation(
+                    new StringPaginationToken(PHOTO_TOKEN_PREFIX),
+                    new PhotosContainerResource(
+                        Lists.newArrayList(new PhotoAlbum(ALBUM_ID, ALBUM_NAME, ALBUM_DESCRIPTION)),
+                        new ArrayList<>()))));
+    assertEquals(ExportResult.ResultType.CONTINUE, result.getType());
+    PhotosContainerResource exportedData = result.getExportedData();
+    assertEquals(1, exportedData.getAlbums().size());
+    assertEquals(
+        new PhotoAlbum(ALBUM_ID, ALBUM_NAME, ALBUM_DESCRIPTION),
+        exportedData.getAlbums().toArray()[0]);
+    assertNull((result.getContinuationData().getPaginationData()));
+    assertThat(result.getContinuationData().getContainerResources())
+        .contains(new IdOnlyContainerResource(ALBUM_ID));
+  }",22,TRUE,TRUE,"```java
+@Test
+public void testSpecifiedAlbums() throws CopyExceptionWithFailureReason {
+  final int EXPECTED_ALBUM_COUNT = 1;
+  final int FIRST_ALBUM_INDEX = 0;
+
+  ExportResult<PhotosContainerResource> result =
+      facebookPhotosExporter.export(
+          uuid,
+          new TokensAndUrlAuthData(""accessToken"", null, null),
+          Optional.of(
+              new ExportInformation(
+                  new StringPaginationToken(PHOTO_TOKEN_PREFIX),
+                  new PhotosContainerResource(
+                      Lists.newArrayList(new PhotoAlbum(ALBUM_ID, ALBUM_NAME, ALBUM_DESCRIPTION)),
+                      new ArrayList<>()))));
+  assertEquals(ExportResult.ResultType.CONTINUE, result.getType());
+  PhotosContainerResource exportedData = result.getExportedData();
+  assertEquals(EXPECTED_ALBUM_COUNT, exportedData.getAlbums().size());
+  assertEquals(
+      new PhotoAlbum(ALBUM_ID, ALBUM_NAME, ALBUM_DESCRIPTION),
+      exportedData.getAlbums().toArray()[FIRST_ALBUM_INDEX]);
+  assertNull((result.getContinuationData().getPaginationData()));
+  assertThat(result.getContinuationData().getContainerResources())
+      .contains(new IdOnlyContainerResource(ALBUM_ID));
+}
+```",NO,,,,,TRUE,
+69,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/postgresql/src/test/java/org/testcontainers/junit/postgresql/SimplePostgreSQLTest.java,testSimple,"    @Test
+    public void testSimple() throws SQLException {
+        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(PostgreSQLTestImages.POSTGRES_TEST_IMAGE)) {
+            postgres.start();
+
+            ResultSet resultSet = performQuery(postgres, ""SELECT 1"");
+            int resultSetInt = resultSet.getInt(1);
+            assertThat(resultSetInt).as(""A basic SELECT query succeeds"").isEqualTo(1);
+            assertHasCorrectExposedAndLivenessCheckPorts(postgres);
+        }
+    }",11,TRUE,TRUE,"```java
+@Test
+public void testSimple() throws SQLException {
+    final int expectedValue = 1;
+    final int firstColumnIndex = 1;
+    try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(PostgreSQLTestImages.POSTGRES_TEST_IMAGE)) {
+        postgres.start();
+
+        ResultSet resultSet = performQuery(postgres, ""SELECT "" + expectedValue);
+        int resultSetInt = resultSet.getInt(firstColumnIndex);
+        assertThat(resultSetInt).as(""A basic SELECT query succeeds"").isEqualTo(expectedValue);
+        assertHasCorrectExposedAndLivenessCheckPorts(postgres);
+    }
+}
+```",NO,,,,,TRUE,
+70,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/deployment/src/test/java/io/quarkus/deployment/proxy/SimpleClassProxyTest.java,testProxyCreation,"    @Test
+    public void testProxyCreation() throws InstantiationException, IllegalAccessException {
+        SimpleInvocationHandler invocationHandler = new SimpleInvocationHandler();
+        ProxyConfiguration<SimpleClass> proxyConfiguration = new ProxyConfiguration<SimpleClass>()
+                .setSuperClass(SimpleClass.class)
+                .setAnchorClass(SimpleClass.class)
+                .setProxyNameSuffix(""$$Proxy1"")
+                .setClassLoader(new TestClassLoader(SimpleClass.class.getClassLoader()));
+        SimpleClass instance = new ProxyFactory<>(proxyConfiguration).newInstance(invocationHandler);
+
+        assertMethod1(instance);
+        assertMethod2(instance);
+        assertMethod3(instance);
+        assertMethod4(instance);
+
+        assertThat(invocationHandler.invocationCount).isEqualTo(4);
+    }",17,TRUE,TRUE,"```java
+@Test
+public void testProxyCreation() throws InstantiationException, IllegalAccessException {
+    SimpleInvocationHandler invocationHandler = new SimpleInvocationHandler();
+    ProxyConfiguration<SimpleClass> proxyConfiguration = new ProxyConfiguration<SimpleClass>()
+            .setSuperClass(SimpleClass.class)
+            .setAnchorClass(SimpleClass.class)
+            .setProxyNameSuffix(""$$Proxy1"")
+            .setClassLoader(new TestClassLoader(SimpleClass.class.getClassLoader()));
+    SimpleClass instance = new ProxyFactory<>(proxyConfiguration).newInstance(invocationHandler);
+
+    assertMethod1(instance);
+    assertMethod2(instance);
+    assertMethod3(instance);
+    assertMethod4(instance);
+
+    int expectedInvocationCount = 4;
+    assertThat(invocationHandler.invocationCount).isEqualTo(expectedInvocationCount);
+}
+```",NO,,,,,TRUE,
+71,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/deployment/src/test/java/io/quarkus/deployment/proxy/SimpleInterfaceProxyTest.java,testProxyCreation,"    @Test
+    public void testProxyCreation() throws InstantiationException, IllegalAccessException {
+        FirstArgInvocationHandler invocationHandler = new FirstArgInvocationHandler();
+        ProxyConfiguration<Object> proxyConfiguration = new ProxyConfiguration<>()
+                .setSuperClass(Object.class)
+                .setAnchorClass(SimpleInterface.class)
+                .setProxyNameSuffix(""$Proxy2"")
+                .setClassLoader(new TestClassLoader(SimpleClass.class.getClassLoader()))
+                .addAdditionalInterface(SimpleInterface.class);
+        SimpleInterface instance = (SimpleInterface) new ProxyFactory<>(proxyConfiguration).newInstance(invocationHandler);
+
+        String result = instance.capitalize(""in"");
+        assertThat(result).isEqualTo(""in"");
+
+        instance.doNothing();
+
+        assertThat(invocationHandler.invocationCount).isEqualTo(2);
+    }",18,TRUE,TRUE,"```java
+@Test
+public void testProxyCreation() throws InstantiationException, IllegalAccessException {
+    FirstArgInvocationHandler invocationHandler = new FirstArgInvocationHandler();
+    ProxyConfiguration<Object> proxyConfiguration = new ProxyConfiguration<>()
+            .setSuperClass(Object.class)
+            .setAnchorClass(SimpleInterface.class)
+            .setProxyNameSuffix(""$Proxy2"")
+            .setClassLoader(new TestClassLoader(SimpleClass.class.getClassLoader()))
+            .addAdditionalInterface(SimpleInterface.class);
+    SimpleInterface instance = (SimpleInterface) new ProxyFactory<>(proxyConfiguration).newInstance(invocationHandler);
+
+    String result = instance.capitalize(""in"");
+    assertThat(result).isEqualTo(""in"");
+
+    instance.doNothing();
+
+    int expectedInvocationCount = 2;
+    assertThat(invocationHandler.invocationCount).isEqualTo(expectedInvocationCount);
+}
+```",NO,,,,,TRUE,
+72,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/deployment/src/test/java/io/quarkus/deployment/util/JandexUtilTest.java,testAbstractSingle,"    @Test
+    public void testAbstractSingle() {
+        final Index index = index(Single.class, AbstractSingle.class);
+        final DotName impl = DotName.createSimple(AbstractSingle.class.getName());
+        List<Type> ret = JandexUtil.resolveTypeParameters(impl, SIMPLE, index);
+        assertThat(ret).hasSize(1).allMatch(t -> t.kind() == Kind.TYPE_VARIABLE && t.asTypeVariable().identifier().equals(""S""));
+    }",7,TRUE,TRUE,"```java
+@Test
+public void testAbstractSingle() {
+    final int expectedTypeParameterCount = 1;
+    final Index index = index(Single.class, AbstractSingle.class);
+    final DotName impl = DotName.createSimple(AbstractSingle.class.getName());
+    List<Type> ret = JandexUtil.resolveTypeParameters(impl, SIMPLE, index);
+    assertThat(ret).hasSize(expectedTypeParameterCount).allMatch(t -> t.kind() == Kind.TYPE_VARIABLE && t.asTypeVariable().identifier().equals(""S""));
+}
+```",NO,,,,,TRUE,
+73,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/deployment/src/test/java/io/quarkus/deployment/util/ServiceUtilTest.java,testNamesNamedIn,"    @Test
+    public void testNamesNamedIn() throws IOException {
+        String fileName = ""META-INF/services/test.javax.servlet.ServletContainerInitializer"";
+        String[] classNames = new String[] {
+                ""org.apache.logging.log4j.web.Log4jServletContainerInitializer"",
+                ""org.apache.logging.log4j.core.Appender"",
+                ""org.apache.logging.log4j.core.Core"",
+                ""org.apache.logging.log4j.core.Core2"",
+                ""org.apache.logging.log4j.core.Core3"",
+                ""org.apache.logging.log4j.core.Layout"",
+                ""org.apache.logging.log4j.core.Layout2""
+        };
+
+        Set<String> classes = ServiceUtil.classNamesNamedIn(Thread.currentThread().getContextClassLoader(), fileName);
+
+        assertEquals(7, classes.size());
+
+        assertThat(classes).contains(classNames);
+
+    }",20,TRUE,TRUE,"```java
+@Test
+public void testNamesNamedIn() throws IOException {
+    String fileName = ""META-INF/services/test.javax.servlet.ServletContainerInitializer"";
+    String[] classNames = new String[] {
+            ""org.apache.logging.log4j.web.Log4jServletContainerInitializer"",
+            ""org.apache.logging.log4j.core.Appender"",
+            ""org.apache.logging.log4j.core.Core"",
+            ""org.apache.logging.log4j.core.Core2"",
+            ""org.apache.logging.log4j.core.Core3"",
+            ""org.apache.logging.log4j.core.Layout"",
+            ""org.apache.logging.log4j.core.Layout2""
+    };
+
+    Set<String> classes = ServiceUtil.classNamesNamedIn(Thread.currentThread().getContextClassLoader(), fileName);
+
+    int expectedSize = 7;
+    assertEquals(expectedSize, classes.size());
+
+    assertThat(classes).contains(classNames);
+}
+```",NO,,,,,TRUE,
+74,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/ExposedHostTest.java,testExposedHostPortOnFixedInternalPorts,"    @Test
+    public void testExposedHostPortOnFixedInternalPorts() {
+        Testcontainers.exposeHostPorts(ImmutableMap.of(server.getAddress().getPort(), 80));
+        Testcontainers.exposeHostPorts(ImmutableMap.of(server.getAddress().getPort(), 81));
+
+        assertResponse(new GenericContainer<>(tinyContainerDef()), 80);
+        assertResponse(new GenericContainer<>(tinyContainerDef()), 81);
+    }",8,TRUE,TRUE,"```java
+@Test
+public void testExposedHostPortOnFixedInternalPorts() {
+    int firstInternalPort = 80;
+    int secondInternalPort = 81;
+
+    Testcontainers.exposeHostPorts(ImmutableMap.of(server.getAddress().getPort(), firstInternalPort));
+    Testcontainers.exposeHostPorts(ImmutableMap.of(server.getAddress().getPort(), secondInternalPort));
+
+    assertResponse(new GenericContainer<>(tinyContainerDef()), firstInternalPort);
+    assertResponse(new GenericContainer<>(tinyContainerDef()), secondInternalPort);
+}
+```",NO,,,,,TRUE,
+75,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/wait/strategy/WaitAllStrategyTest.java,parentTimeoutApplies,"    @Test
+    public void parentTimeoutApplies() {
+        DummyStrategy child1 = new DummyStrategy(Duration.ofMillis(10));
+        child1.withStartupTimeout(Duration.ofMillis(20));
+
+        assertThat(child1.startupTimeout.toMillis()).as(""withStartupTimeout directly sets the timeout"").isEqualTo(20L);
+
+        new WaitAllStrategy().withStrategy(child1).withStartupTimeout(Duration.ofMillis(30));
+
+        assertThat(child1.startupTimeout.toMillis()).as(""WaitAllStrategy overrides a child's timeout"").isEqualTo(30L);
+    }",11,TRUE,TRUE,"```java
+@Test
+public void parentTimeoutApplies() {
+    long initialTimeoutMillis = 10L;
+    long childStartupTimeoutMillis = 20L;
+    long parentStartupTimeoutMillis = 30L;
+
+    DummyStrategy child1 = new DummyStrategy(Duration.ofMillis(initialTimeoutMillis));
+    child1.withStartupTimeout(Duration.ofMillis(childStartupTimeoutMillis));
+
+    assertThat(child1.startupTimeout.toMillis())
+            .as(""withStartupTimeout directly sets the timeout"")
+            .isEqualTo(childStartupTimeoutMillis);
+
+    new WaitAllStrategy().withStrategy(child1).withStartupTimeout(Duration.ofMillis(parentStartupTimeoutMillis));
+
+    assertThat(child1.startupTimeout.toMillis())
+            .as(""WaitAllStrategy overrides a child's timeout"")
+            .isEqualTo(parentStartupTimeoutMillis);
+}
+```",NO,,,,,TRUE,
+76,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/query/QueryTest.java,testFuzzyMatchWithoutIndex,"    @Test
+    public void testFuzzyMatchWithoutIndex() {
+        JanusGraphManagement mgmt = graph.openManagement();
+        PropertyKey name = mgmt.makePropertyKey(""name"").dataType(String.class).make();
+        mgmt.commit();
+
+        tx.addVertex().property(""name"", ""some value"");
+        tx.commit();
+
+        // Exact match
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textFuzzy(""some value"")).count().next());
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""value"")).count().next());
+
+        // One character different
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textFuzzy(""some values"")).count().next());
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""values"")).count().next());
+
+        // Two characters different
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textFuzzy(""some val"")).count().next());
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""values!"")).count().next());
+
+        // Three characters different
+        assertEquals(0, graph.traversal().V().has(""name"", Text.textFuzzy(""some Val"")).count().next());
+        assertEquals(0, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""valuable"")).count().next());
+    }",25,TRUE,TRUE,"```java
+@Test
+public void testFuzzyMatchWithoutIndex() {
+    final long EXPECTED_MATCH = 1L;
+    final long EXPECTED_NO_MATCH = 0L;
+
+    JanusGraphManagement mgmt = graph.openManagement();
+    PropertyKey name = mgmt.makePropertyKey(""name"").dataType(String.class).make();
+    mgmt.commit();
+
+    tx.addVertex().property(""name"", ""some value"");
+    tx.commit();
+
+    // Exact match
+    assertEquals(EXPECTED_MATCH, graph.traversal().V().has(""name"", Text.textFuzzy(""some value"")).count().next());
+    assertEquals(EXPECTED_MATCH, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""value"")).count().next());
+
+    // One character different
+    assertEquals(EXPECTED_MATCH, graph.traversal().V().has(""name"", Text.textFuzzy(""some values"")).count().next());
+    assertEquals(EXPECTED_MATCH, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""values"")).count().next());
+
+    // Two characters different
+    assertEquals(EXPECTED_MATCH, graph.traversal().V().has(""name"", Text.textFuzzy(""some val"")).count().next());
+    assertEquals(EXPECTED_MATCH, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""values!"")).count().next());
+
+    // Three characters different
+    assertEquals(EXPECTED_NO_MATCH, graph.traversal().V().has(""name"", Text.textFuzzy(""some Val"")).count().next());
+    assertEquals(EXPECTED_NO_MATCH, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""valuable"")).count().next());
+}
+```",NO,,,,,TRUE,
+77,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/Activiti/Activiti,https://raw.githubusercontent.com/Activiti/Activiti/develop/activiti-core/activiti-api-impl/activiti-api-process-runtime-impl/src/test/java/org/activiti/runtime/api/impl/ExpressionResolverTest.java,resolveExpressionsMap_should_replaceExpressionByValue_when_ObjectNodeContainsAnExpression,"    @Test
+    public void resolveExpressionsMap_should_replaceExpressionByValue_when_ObjectNodeContainsAnExpression() throws IOException {
+        //given
+        Expression nameExpression = buildExpression(""${name}"");
+        given(expressionEvaluator.evaluate(nameExpression, expressionManager, delegateInterceptor)).willReturn(""John"");
+
+        Expression placeExpression = buildExpression(""${place}"");
+        given(expressionEvaluator.evaluate(placeExpression, expressionManager, delegateInterceptor)).willReturn(null);
+
+        Expression ageExpression = buildExpression(""${age}"");
+        given(expressionEvaluator.evaluate(ageExpression, expressionManager, delegateInterceptor)).willReturn(30);
+
+        JsonNode node = mapper.readTree(""{\""name\"":\""${name}\"",\""place\"":\""${place}\"",\""age\"":\""${age}\""}"");
+
+        //when
+        Map<String, Object> result = expressionResolver.resolveExpressionsMap(expressionEvaluator,
+                                                                              singletonMap(""node"", node));
+        //then
+        assertThat(result).containsEntry(""node"", map(
+            ""name"", ""John"",
+            ""place"", null,
+            ""age"", 30
+        ));
+    }",24,TRUE,TRUE,"```java
+@Test
+public void resolveExpressionsMap_should_replaceExpressionByValue_when_ObjectNodeContainsAnExpression() throws IOException {
+    //given
+    int expectedAge = 30;
+    Expression nameExpression = buildExpression(""${name}"");
+    given(expressionEvaluator.evaluate(nameExpression, expressionManager, delegateInterceptor)).willReturn(""John"");
+
+    Expression placeExpression = buildExpression(""${place}"");
+    given(expressionEvaluator.evaluate(placeExpression, expressionManager, delegateInterceptor)).willReturn(null);
+
+    Expression ageExpression = buildExpression(""${age}"");
+    given(expressionEvaluator.evaluate(ageExpression, expressionManager, delegateInterceptor)).willReturn(expectedAge);
+
+    JsonNode node = mapper.readTree(""{\""name\"":\""${name}\"",\""place\"":\""${place}\"",\""age\"":\""${age}\""}"");
+
+    //when
+    Map<String, Object> result = expressionResolver.resolveExpressionsMap(expressionEvaluator,
+                                                                          singletonMap(""node"", node));
+    //then
+    assertThat(result).containsEntry(""node"", map(
+        ""name"", ""John"",
+        ""place"", null,
+        ""age"", expectedAge
+    ));
+}
+```",NO,,,,,TRUE,
+78,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/mssqlserver/src/test/java/org/testcontainers/junit/mssqlserver/SimpleMSSQLServerTest.java,testSetupDatabase,"    @Test
+    public void testSetupDatabase() throws SQLException {
+        try (
+            MSSQLServerContainer<?> mssqlServer = new MSSQLServerContainer<>(MSSQLServerTestImages.MSSQL_SERVER_IMAGE)
+        ) {
+            mssqlServer.start();
+            DataSource ds = getDataSource(mssqlServer);
+            Statement statement = ds.getConnection().createStatement();
+            statement.executeUpdate(""CREATE DATABASE [test];"");
+            statement = ds.getConnection().createStatement();
+            statement.executeUpdate(""CREATE TABLE [test].[dbo].[Foo](ID INT PRIMARY KEY);"");
+            statement = ds.getConnection().createStatement();
+            statement.executeUpdate(""INSERT INTO [test].[dbo].[Foo] (ID) VALUES (3);"");
+            statement = ds.getConnection().createStatement();
+            statement.execute(""SELECT * FROM [test].[dbo].[Foo];"");
+            ResultSet resultSet = statement.getResultSet();
+
+            resultSet.next();
+            int resultSetInt = resultSet.getInt(""ID"");
+            assertThat(resultSetInt).as(""A basic SELECT query succeeds"").isEqualTo(3);
+        }
+    }",22,TRUE,TRUE,"```java
+@Test
+public void testSetupDatabase() throws SQLException {
+    final int expectedId = 3;
+    try (
+        MSSQLServerContainer<?> mssqlServer = new MSSQLServerContainer<>(MSSQLServerTestImages.MSSQL_SERVER_IMAGE)
+    ) {
+        mssqlServer.start();
+        DataSource ds = getDataSource(mssqlServer);
+        Statement statement = ds.getConnection().createStatement();
+        statement.executeUpdate(""CREATE DATABASE [test];"");
+        statement = ds.getConnection().createStatement();
+        statement.executeUpdate(""CREATE TABLE [test].[dbo].[Foo](ID INT PRIMARY KEY);"");
+        statement = ds.getConnection().createStatement();
+        statement.executeUpdate(""INSERT INTO [test].[dbo].[Foo] (ID) VALUES ("" + expectedId + "");"");
+        statement = ds.getConnection().createStatement();
+        statement.execute(""SELECT * FROM [test].[dbo].[Foo];"");
+        ResultSet resultSet = statement.getResultSet();
+
+        resultSet.next();
+        int resultSetInt = resultSet.getInt(""ID"");
+        assertThat(resultSetInt).as(""A basic SELECT query succeeds"").isEqualTo(expectedId);
+    }
+}
+```",NO,,,,,TRUE,
+79,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/TestCoreElements.java,testOrder,"    @Test
+    public void testOrder() {
+        assertTrue(Order.ASC.modulateNaturalOrder(""A"".compareTo(""B""))<0);
+        assertTrue(Order.DESC.modulateNaturalOrder(""A"".compareTo(""B""))>0);
+    }",5,TRUE,NO,,,TRUE,NO,TRUE,NO,FALSE,It did not identify the test smell
+80,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/Activiti/Activiti,https://raw.githubusercontent.com/Activiti/Activiti/develop/activiti-core/activiti-api-impl/activiti-api-process-runtime-impl/src/test/java/org/activiti/spring/process/ProcessVariablesInitiatorIT.java,calculateVariablesFromExtensionFileShouldReturnVariablesWithDefaultValues,"    @Test
+    public void calculateVariablesFromExtensionFileShouldReturnVariablesWithDefaultValues() throws Exception {
+        //given
+        try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(""processes/default-vars-extensions.json"")) {
+            ProcessExtensionModel extension = reader.read(inputStream);
+
+            ProcessDefinition processDefinition = mock(ProcessDefinition.class);
+            given(processExtensionService.getExtensionsFor(processDefinition)).willReturn(extension.getExtensions(""Process_DefaultVarsProcess""));
+            given(processExtensionService.hasExtensionsFor(processDefinition)).willReturn(true);
+            given(processDefinition.getKey()).willReturn(""Process_DefaultVarsProcess"");
+
+            //when
+            Map<String, Object> variables = processVariablesInitiator.calculateVariablesFromExtensionFile(processDefinition,
+                                                                                                          null);
+
+            //then
+            assertThat(variables)
+                    .containsEntry(""name"",
+                                   ""Nobody"")
+                    .containsEntry(""positionInTheQueue"",
+                                   10)
+                    .doesNotContainKeys(""age""); // age has no default value, so it won't be created
+        }
+    }",24,TRUE,TRUE,"```java
+@Test
+public void calculateVariablesFromExtensionFileShouldReturnVariablesWithDefaultValues() throws Exception {
+    //given
+    int expectedPositionInQueue = 10;
+    try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(""processes/default-vars-extensions.json"")) {
+        ProcessExtensionModel extension = reader.read(inputStream);
+
+        ProcessDefinition processDefinition = mock(ProcessDefinition.class);
+        given(processExtensionService.getExtensionsFor(processDefinition)).willReturn(extension.getExtensions(""Process_DefaultVarsProcess""));
+        given(processExtensionService.hasExtensionsFor(processDefinition)).willReturn(true);
+        given(processDefinition.getKey()).willReturn(""Process_DefaultVarsProcess"");
+
+        //when
+        Map<String, Object> variables = processVariablesInitiator.calculateVariablesFromExtensionFile(processDefinition,
+                                                                                                  null);
+
+        //then
+        assertThat(variables)
+                .containsEntry(""name"",
+                               ""Nobody"")
+                .containsEntry(""positionInTheQueue"",
+                               expectedPositionInQueue)
+                .doesNotContainKeys(""age""); // age has no default value, so it won't be created
+    }
+}
+```",NO,,,,,TRUE,
+81,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/ValueUnitTests.java,streamShouldCreateAStream,"   @Test
+    void streamShouldCreateAStream() {
+
+        Value<String> empty = Value.fromNullable(""hello"");
+
+        assertThat(empty.stream().count()).isEqualTo(1);
+    }",7,TRUE,TRUE,"```java
+@Test
+void streamShouldCreateAStream() {
+    int expectedElementCount = 1;
+    Value<String> empty = Value.fromNullable(""hello"");
+
+    assertThat(empty.stream().count()).isEqualTo(expectedElementCount);
+}
+```",NO,,,,,TRUE,
+82,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/tinkerpop/optimize/AdjacentVertexFilterOptimizerStrategyTest.java,shouldNotStuck,"    @Test
+    public void shouldNotStuck() {
+        assertTimeoutPreemptively(ofSeconds(10), () -> {
+            Vertex vertex = graph.traversal().addV().next();
+            graph.traversal().withStrategies(AdjacentVertexFilterOptimizerStrategy.instance())
+                 .V().outE().has(""p"", ""v"").filter(inV().is(vertex)).tryNext();
+        });
+    }",8,TRUE,TRUE,"```java
+@Test
+public void shouldNotStuck() {
+    long timeoutSeconds = 10;
+    assertTimeoutPreemptively(ofSeconds(timeoutSeconds), () -> {
+        Vertex vertex = graph.traversal().addV().next();
+        graph.traversal().withStrategies(AdjacentVertexFilterOptimizerStrategy.instance())
+             .V().outE().has(""p"", ""v"").filter(inV().is(vertex)).tryNext();
+    });
+}
+```",NO,,,,,TRUE,
+83,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/clojure/ClojureAnalyzerFactoryTest.java,testScopeAnalyzer,"   @Test
+    void testScopeAnalyzer() throws Exception {
+        String path = repository.getSourceRoot() + ""/clojure/sample.clj"";
+        File f = new File(path);
+        assertTrue(f.canRead() && f.isFile(), ""clojure testfile "" + f + "" not found"");
+
+        Document doc = new Document();
+        doc.add(new Field(QueryBuilder.FULLPATH, path,
+                          string_ft_nstored_nanalyzed_norms));
+        StringWriter xrefOut = new StringWriter();
+        analyzer.setCtags(ctags);
+        analyzer.analyze(doc, getStreamSource(path), xrefOut);
+
+        Definitions definitions = Definitions.deserialize(doc.getField(QueryBuilder.TAGS).binaryValue().bytes);
+
+        String[] type = new String[1];
+        assertTrue(definitions.hasDefinitionAt(""opengrok"", 4, type));
+        assertThat(type[0], is(""namespace""));
+        assertTrue(definitions.hasDefinitionAt(""power-set"", 8, type));
+        assertThat(type[0], is(""function""));
+        assertTrue(definitions.hasDefinitionAt(""power-set-private"", 14, type));
+        assertThat(type[0], is(""privateFunction""));
+        assertTrue(definitions.hasDefinitionAt(""author"", 19, type));
+        assertThat(type[0], is(""struct""));
+        assertTrue(definitions.hasDefinitionAt(""author-first-name"", 22, type));
+        assertThat(type[0], is(""definition""));
+        assertTrue(definitions.hasDefinitionAt(""Farid"", 24, type));
+        assertThat(type[0], is(""definition""));
+    }",29,TRUE,TRUE,"```java
+@Test
+void testScopeAnalyzer() throws Exception {
+    String path = repository.getSourceRoot() + ""/clojure/sample.clj"";
+    File f = new File(path);
+    assertTrue(f.canRead() && f.isFile(), ""clojure testfile "" + f + "" not found"");
+
+    Document doc = new Document();
+    doc.add(new Field(QueryBuilder.FULLPATH, path,
+                      string_ft_nstored_nanalyzed_norms));
+    StringWriter xrefOut = new StringWriter();
+    analyzer.setCtags(ctags);
+    analyzer.analyze(doc, getStreamSource(path), xrefOut);
+
+    Definitions definitions = Definitions.deserialize(doc.getField(QueryBuilder.TAGS).binaryValue().bytes);
+
+    String[] type = new String[1];
+    
+    int opengrokLine = 4;
+    assertTrue(definitions.hasDefinitionAt(""opengrok"", opengrokLine, type));
+    assertThat(type[0], is(""namespace""));
+
+    int powerSetLine = 8;
+    assertTrue(definitions.hasDefinitionAt(""power-set"", powerSetLine, type));
+    assertThat(type[0], is(""function""));
+
+    int powerSetPrivateLine = 14;
+    assertTrue(definitions.hasDefinitionAt(""power-set-private"", powerSetPrivateLine, type));
+    assertThat(type[0], is(""privateFunction""));
+
+    int authorLine = 19;
+    assertTrue(definitions.hasDefinitionAt(""author"", authorLine, type));
+    assertThat(type[0], is(""struct""));
+
+    int authorFirstNameLine = 22;
+    assertTrue(definitions.hasDefinitionAt(""author-first-name"", authorFirstNameLine, type));
+    assertThat(type[0], is(""definition""));
+
+    int faridLine = 24;
+    assertTrue(definitions.hasDefinitionAt(""Farid"", faridLine, type));
+    assertThat(type[0], is(""definition""));
+}
+```",NO,,,,,,
+84,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/orientdb/src/test/java/org/testcontainers/containers/OrientDBContainerTest.java,shouldInitializeDatabaseFromScript,"    @Test
+    public void shouldInitializeDatabaseFromScript() {
+        try (
+            OrientDBContainer container = new OrientDBContainer(ORIENTDB_IMAGE)
+                .withScriptPath(""initscript.osql"")
+                .withDatabaseName(""persons"")
+        ) {
+            container.start();
+
+            assertThat(container.getDbUrl())
+                .isEqualTo(""remote:"" + container.getHost() + "":"" + container.getMappedPort(2424) + ""/persons"");
+
+            final ODatabaseSession session = container.getSession();
+
+            assertThat(session.query(""SELECT FROM Person"").stream()).hasSize(4);
+        }
+    }",17,TRUE,TRUE,"```java
+@Test
+public void shouldInitializeDatabaseFromScript() {
+    final int orientDbDefaultPort = 2424;
+    final int expectedPersonsCount = 4;
+
+    try (
+        OrientDBContainer container = new OrientDBContainer(ORIENTDB_IMAGE)
+            .withScriptPath(""initscript.osql"")
+            .withDatabaseName(""persons"")
+    ) {
+        container.start();
+
+        assertThat(container.getDbUrl())
+            .isEqualTo(""remote:"" + container.getHost() + "":"" + container.getMappedPort(orientDbDefaultPort) + ""/persons"");
+
+        final ODatabaseSession session = container.getSession();
+
+        assertThat(session.query(""SELECT FROM Person"").stream()).hasSize(expectedPersonsCount);
+    }
+}
+```",NO,,,,,,
+85,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/CtagsTest.java,testDoCtags,"   @Test
+    void testDoCtags() throws Exception {
+        Definitions result = getDefs(""bug16070/arguments.c"");
+        assertEquals(13, result.numberOfSymbols());
+    }",5,TRUE,TRUE,"```java
+@Test
+void testDoCtags() throws Exception {
+    int expectedNumberOfSymbols = 13;
+    Definitions result = getDefs(""bug16070/arguments.c"");
+    assertEquals(expectedNumberOfSymbols, result.numberOfSymbols());
+}
+```",NO,,,,,,
+86,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/support/CommonsPool2ConfigConverterUnitTests.java,shouldAdaptConfiguration,"   @Test
+    void shouldAdaptConfiguration() {
+
+        GenericObjectPoolConfig<String> config = new GenericObjectPoolConfig<>();
+        config.setMinIdle(2);
+        config.setMaxIdle(12);
+        config.setMaxTotal(13);
+        config.setTestOnBorrow(true);
+        config.setTestOnReturn(true);
+        config.setTestOnCreate(true);
+
+        BoundedPoolConfig result = CommonsPool2ConfigConverter.bounded(config);
+
+        assertThat(result.getMinIdle()).isEqualTo(2);
+        assertThat(result.getMaxIdle()).isEqualTo(12);
+        assertThat(result.getMaxTotal()).isEqualTo(13);
+        assertThat(result.isTestOnAcquire()).isTrue();
+        assertThat(result.isTestOnCreate()).isTrue();
+        assertThat(result.isTestOnRelease()).isTrue();
+    }",20,TRUE,TRUE,"```java
+@Test
+void shouldAdaptConfiguration() {
+    int minIdle = 2;
+    int maxIdle = 12;
+    int maxTotal = 13;
+
+    GenericObjectPoolConfig<String> config = new GenericObjectPoolConfig<>();
+    config.setMinIdle(minIdle);
+    config.setMaxIdle(maxIdle);
+    config.setMaxTotal(maxTotal);
+    config.setTestOnBorrow(true);
+    config.setTestOnReturn(true);
+    config.setTestOnCreate(true);
+
+    BoundedPoolConfig result = CommonsPool2ConfigConverter.bounded(config);
+
+    assertThat(result.getMinIdle()).isEqualTo(minIdle);
+    assertThat(result.getMaxIdle()).isEqualTo(maxIdle);
+    assertThat(result.getMaxTotal()).isEqualTo(maxTotal);
+    assertThat(result.isTestOnAcquire()).isTrue();
+    assertThat(result.isTestOnCreate()).isTrue();
+    assertThat(result.isTestOnRelease()).isTrue();
+}
+```",NO,,,,,,
+87,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/mysql/src/test/java/org/testcontainers/junit/mysql/SimpleMySQLTest.java,testEmptyPasswordWithRootUser,"    @Test
+    public void testEmptyPasswordWithRootUser() throws SQLException {
+        // Add MYSQL_ROOT_HOST environment so that we can root login from anywhere for testing purposes
+        try (
+            MySQLContainer<?> mysql = new MySQLContainer<>(MySQLTestImages.MYSQL_80_IMAGE)
+                .withDatabaseName(""foo"")
+                .withUsername(""root"")
+                .withPassword("""")
+                .withEnv(""MYSQL_ROOT_HOST"", ""%"")
+        ) {
+            mysql.start();
+
+            ResultSet resultSet = performQuery(mysql, ""SELECT 1"");
+            int resultSetInt = resultSet.getInt(1);
+
+            assertThat(resultSetInt).as(""A basic SELECT query succeeds"").isEqualTo(1);
+        }
+    }",18,TRUE,TRUE,"```java
+@Test
+public void testEmptyPasswordWithRootUser() throws SQLException {
+    final int EXPECTED_VALUE = 1;
+    final int COLUMN_INDEX = 1;
+
+    // Add MYSQL_ROOT_HOST environment so that we can root login from anywhere for testing purposes
+    try (
+        MySQLContainer<?> mysql = new MySQLContainer<>(MySQLTestImages.MYSQL_80_IMAGE)
+            .withDatabaseName(""foo"")
+            .withUsername(""root"")
+            .withPassword("""")
+            .withEnv(""MYSQL_ROOT_HOST"", ""%"")
+    ) {
+        mysql.start();
+
+        ResultSet resultSet = performQuery(mysql, ""SELECT 1"");
+        int resultSetInt = resultSet.getInt(COLUMN_INDEX);
+
+        assertThat(resultSetInt).as(""A basic SELECT query succeeds"").isEqualTo(EXPECTED_VALUE);
+    }
+}
+```",NO,,,,,,
+88,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/neo4j/src/test/java/org/testcontainers/containers/Neo4jContainerJUnitIntegrationTest.java,shouldStart,"    @Test
+    public void shouldStart() {
+        boolean actual = neo4jContainer.isRunning();
+        assertThat(actual).isTrue();
+
+        try (
+            Driver driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic(""neo4j"", ""password""));
+            Session session = driver.session()
+        ) {
+            long one = session.run(""RETURN 1"", Collections.emptyMap()).next().get(0).asLong();
+            assertThat(one).isEqualTo(1L);
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }",15,TRUE,TRUE,"```java
+@Test
+public void shouldStart() {
+    boolean actual = neo4jContainer.isRunning();
+    assertThat(actual).isTrue();
+
+    final long expectedValue = 1L;
+
+    try (
+        Driver driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic(""neo4j"", ""password""));
+        Session session = driver.session()
+    ) {
+        long one = session.run(""RETURN 1"", Collections.emptyMap()).next().get(0).asLong();
+        assertThat(one).isEqualTo(expectedValue);
+    } catch (Exception e) {
+        fail(e.getMessage());
+    }
+}
+```",NO,,,,,,
+89,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/neo4j/src/test/java/org/testcontainers/containers/Neo4jContainerTest.java,shouldDisableAuthentication,"    @Test
+    public void shouldDisableAuthentication() {
+        try (
+            // spotless:off
+            // withoutAuthentication {
+            Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>(""neo4j:4.4"")
+                .withoutAuthentication()
+            // }
+            // spotless:on
+        ) {
+            neo4jContainer.start();
+            try (Driver driver = getDriver(neo4jContainer); Session session = driver.session()) {
+                long one = session.run(""RETURN 1"", Collections.emptyMap()).next().get(0).asLong();
+                assertThat(one).isEqualTo(1L);
+            }
+        }
+    }",17,TRUE,TRUE,"```java
+@Test
+public void shouldDisableAuthentication() {
+    final long expectedValue = 1L;
+    try (
+        // spotless:off
+        // withoutAuthentication {
+        Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>(""neo4j:4.4"")
+            .withoutAuthentication()
+        // }
+        // spotless:on
+    ) {
+        neo4jContainer.start();
+        try (Driver driver = getDriver(neo4jContainer); Session session = driver.session()) {
+            long actualValue = session.run(""RETURN 1"", Collections.emptyMap()).next().get(0).asLong();
+            assertThat(actualValue).isEqualTo(expectedValue);
+        }
+    }
+}
+```",NO,,,,,,
+90,gemma4:31b,2026-06-11,Magic Number Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/core/runtime/src/test/java/io/quarkus/runtime/configuration/ConverterTestCase.java,testSocketAddress,"    @Test
+    public void testSocketAddress() {
+        final InetSocketAddressConverter converter = new InetSocketAddressConverter();
+        assertEquals(new InetSocketAddress(Inet.parseInet4Address(""127.0.0.1""), 1234), converter.convert(""127.0.0.1:1234""));
+        assertEquals(new InetSocketAddress(Inet.parseInet4Address(""127.0.0.1""), 1234), converter.convert(""[127.0.0.1]:1234""));
+        assertEquals(new InetSocketAddress(Inet.parseInet6Address(""::""), 1234), converter.convert(""[::]:1234""));
+        assertEquals(new InetSocketAddress(Inet.parseInet6Address(""::""), 1234), converter.convert(""[[::]]:1234""));
+        assertEquals(InetSocketAddress.createUnresolved(""some-host-name.foo"", 1234),
+                converter.convert(""some-host-name.foo:1234""));
+        assertEquals(InetSocketAddress.createUnresolved(""some-host-name.foo"", 1234),
+                converter.convert(""[some-host-name.foo]:1234""));
+        assertEquals(InetSocketAddress.createUnresolved(""some-host-name.foo"", 1234),
+                converter.convert(""[[some-host-name.foo]]:1234""));
+    }",14,TRUE,TRUE,"```java
+@Test
+public void testSocketAddress() {
+    final int port = 1234;
+    final InetSocketAddressConverter converter = new InetSocketAddressConverter();
+    assertEquals(new InetSocketAddress(Inet.parseInet4Address(""127.0.0.1""), port), converter.convert(""127.0.0.1:1234""));
+    assertEquals(new InetSocketAddress(Inet.parseInet4Address(""127.0.0.1""), port), converter.convert(""[127.0.0.1]:1234""));
+    assertEquals(new InetSocketAddress(Inet.parseInet6Address(""::""), port), converter.convert(""[::]:1234""));
+    assertEquals(new InetSocketAddress(Inet.parseInet6Address(""::""), port), converter.convert(""[[::]]:1234""));
+    assertEquals(InetSocketAddress.createUnresolved(""some-host-name.foo"", port),
+            converter.convert(""some-host-name.foo:1234""));
+    assertEquals(InetSocketAddress.createUnresolved(""some-host-name.foo"", port),
+            converter.convert(""[some-host-name.foo]:1234""));
+    assertEquals(InetSocketAddress.createUnresolved(""some-host-name.foo"", port),
+            converter.convert(""[[some-host-name.foo]]:1234""));
+}
+```",NO,,,,,,

@@ -1,0 +1,151 @@
+Index,Type,1-agent-Gemma4-31B,4-agent-Gemma4-31B,1-agent-Gemma4-31B,4-agent-Gemma4-31B
+1,Conditional Test Logic,FALSE,FALSE,It changed some smelly code but did not eliminate any test smells,It changed some smelly code but did not eliminate any test smells
+2,Conditional Test Logic,FALSE,TRUE,The refactoring resulted in behavioral changes or led to a compilation error,
+3,Conditional Test Logic,TRUE,TRUE,,
+4,Conditional Test Logic,TRUE,TRUE,,
+5,Conditional Test Logic,TRUE,TRUE,,
+6,Conditional Test Logic,TRUE,FALSE,,The refactoring resulted in behavioral changes or led to a compilation error
+7,Conditional Test Logic,FALSE,FALSE,It changed some smelly code but did not eliminate any test smells,The refactoring resulted in behavioral changes or led to a compilation error
+8,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+9,Conditional Test Logic,TRUE,TRUE,,
+10,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+11,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+12,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+13,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+14,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+15,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+16,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+17,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+18,Conditional Test Logic,TRUE,TRUE,,
+19,Conditional Test Logic,TRUE,TRUE,,
+20,Conditional Test Logic,FALSE,FALSE,It changed some smelly code but did not eliminate any test smells,The refactoring resulted in behavioral changes or led to a compilation error
+21,Conditional Test Logic,FALSE,FALSE,It changed some smelly code but did not eliminate any test smells,The refactoring resulted in behavioral changes or led to a compilation error
+22,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+23,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+24,Conditional Test Logic,FALSE,FALSE,It changed some smelly code but did not eliminate any test smells,The refactoring resulted in behavioral changes or led to a compilation error
+25,Conditional Test Logic,TRUE,TRUE,,
+26,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+27,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+28,Conditional Test Logic,FALSE,FALSE,It changed some smelly code but did not eliminate any test smells,The refactoring resulted in behavioral changes or led to a compilation error
+29,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+30,Conditional Test Logic,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+31,Assertion Roullete,TRUE,TRUE,,
+32,Assertion Roullete,TRUE,TRUE,,
+33,Assertion Roullete,TRUE,TRUE,,
+34,Assertion Roullete,TRUE,TRUE,,
+35,Assertion Roullete,TRUE,TRUE,,
+36,Assertion Roullete,TRUE,TRUE,,
+37,Assertion Roullete,TRUE,TRUE,,
+38,Assertion Roullete,FALSE,FALSE,"The use of invalid constructs, elements from frameworks other than JUnit-5, or incorrect syntax and ordering",The refactoring resulted in behavioral changes or led to a compilation error
+39,Assertion Roullete,FALSE,FALSE,"The use of invalid constructs, elements from frameworks other than JUnit-5, or incorrect syntax and ordering",The refactoring resulted in behavioral changes or led to a compilation error
+40,Assertion Roullete,TRUE,TRUE,,
+41,Assertion Roullete,TRUE,TRUE,,
+42,Assertion Roullete,TRUE,TRUE,,
+43,Assertion Roullete,TRUE,TRUE,,
+44,Assertion Roullete,TRUE,TRUE,,
+45,Assertion Roullete,TRUE,TRUE,,
+46,Assertion Roullete,TRUE,TRUE,,
+47,Assertion Roullete,TRUE,TRUE,,
+48,Assertion Roullete,TRUE,TRUE,,
+49,Assertion Roullete,TRUE,TRUE,,
+50,Assertion Roullete,TRUE,TRUE,,
+51,Assertion Roullete,TRUE,TRUE,,
+52,Assertion Roullete,TRUE,TRUE,,
+53,Assertion Roullete,TRUE,TRUE,,
+54,Assertion Roullete,TRUE,TRUE,,
+55,Assertion Roullete,TRUE,TRUE,,
+56,Assertion Roullete,TRUE,TRUE,,
+57,Assertion Roullete,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+58,Assertion Roullete,TRUE,TRUE,,
+59,Assertion Roullete,FALSE,FALSE,It neither fixed test smells nor changed smelly code,It neither fixed test smells nor changed smelly code
+60,Assertion Roullete,TRUE,TRUE,,
+61,Magic Numer Test,TRUE,TRUE,,
+62,Magic Numer Test,TRUE,TRUE,,
+63,Magic Numer Test,TRUE,TRUE,,
+64,Magic Numer Test,TRUE,TRUE,,
+65,Magic Numer Test,TRUE,TRUE,,
+66,Magic Numer Test,TRUE,TRUE,,
+67,Magic Numer Test,TRUE,TRUE,,
+68,Magic Numer Test,TRUE,TRUE,,
+69,Magic Numer Test,TRUE,TRUE,,
+70,Magic Numer Test,TRUE,TRUE,,
+71,Magic Numer Test,TRUE,TRUE,,
+72,Magic Numer Test,TRUE,TRUE,,
+73,Magic Numer Test,TRUE,TRUE,,
+74,Magic Numer Test,TRUE,TRUE,,
+75,Magic Numer Test,TRUE,TRUE,,
+76,Magic Numer Test,TRUE,TRUE,,
+77,Magic Numer Test,TRUE,TRUE,,
+78,Magic Numer Test,TRUE,TRUE,,
+79,Magic Numer Test,TRUE,FALSE,,It did not identify the test smell
+80,Magic Numer Test,TRUE,TRUE,,
+81,Magic Numer Test,TRUE,TRUE,,
+82,Magic Numer Test,TRUE,TRUE,,
+83,Magic Numer Test,TRUE,TRUE,,
+84,Magic Numer Test,TRUE,TRUE,,
+85,Magic Numer Test,TRUE,TRUE,,
+86,Magic Numer Test,TRUE,TRUE,,
+87,Magic Numer Test,TRUE,TRUE,,
+88,Magic Numer Test,TRUE,TRUE,,
+89,Magic Numer Test,TRUE,TRUE,,
+90,Magic Numer Test,TRUE,TRUE,,
+91,Duplicate Assert,FALSE,TRUE,It neither fixed test smells nor changed smelly code,
+92,Duplicate Assert,TRUE,TRUE,,
+93,Duplicate Assert,TRUE,TRUE,,
+94,Duplicate Assert,TRUE,TRUE,,
+95,Duplicate Assert,TRUE,TRUE,,
+96,Duplicate Assert,TRUE,TRUE,,
+97,Duplicate Assert,TRUE,TRUE,,
+98,Duplicate Assert,TRUE,TRUE,,
+99,Duplicate Assert,TRUE,FALSE,,The refactoring resulted in behavioral changes or led to a compilation error
+100,Duplicate Assert,TRUE,TRUE,,
+101,Duplicate Assert,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,"Agent 3 correctly refactored the code and removed the smell, but Agent 4 disagreed with the changes"
+102,Duplicate Assert,TRUE,TRUE,,
+103,Duplicate Assert,FALSE,TRUE,The refactoring resulted in behavioral changes or led to a compilation error,
+104,Duplicate Assert,TRUE,TRUE,,
+105,Duplicate Assert,TRUE,FALSE,,It did not identify the test smell
+106,Duplicate Assert,TRUE,TRUE,,
+107,Duplicate Assert,TRUE,TRUE,,
+108,Duplicate Assert,TRUE,TRUE,,
+109,Duplicate Assert,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+110,Duplicate Assert,TRUE,FALSE,,The refactoring resulted in behavioral changes or led to a compilation error
+111,Duplicate Assert,TRUE,TRUE,,
+112,Duplicate Assert,TRUE,FALSE,,The refactoring resulted in behavioral changes or led to a compilation error
+113,Duplicate Assert,TRUE,FALSE,,It did not identify the test smell
+114,Duplicate Assert,TRUE,FALSE,,It did not identify the test smell
+115,Duplicate Assert,TRUE,FALSE,,The refactoring resulted in behavioral changes or led to a compilation error
+116,Duplicate Assert,TRUE,TRUE,,
+117,Duplicate Assert,TRUE,FALSE,,The refactoring resulted in behavioral changes or led to a compilation error
+118,Duplicate Assert,TRUE,TRUE,,
+119,Duplicate Assert,TRUE,TRUE,,
+120,Duplicate Assert,TRUE,TRUE,,
+121,Exception Handling,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+122,Exception Handling,TRUE,TRUE,,
+123,Exception Handling,TRUE,TRUE,,
+124,Exception Handling,TRUE,TRUE,,
+125,Exception Handling,TRUE,TRUE,,
+126,Exception Handling,TRUE,TRUE,,
+127,Exception Handling,TRUE,TRUE,,
+128,Exception Handling,TRUE,TRUE,,
+129,Exception Handling,TRUE,TRUE,,
+130,Exception Handling,FALSE,FALSE,The refactoring resulted in behavioral changes or led to a compilation error,The refactoring resulted in behavioral changes or led to a compilation error
+131,Exception Handling,TRUE,TRUE,,
+132,Exception Handling,TRUE,TRUE,,
+133,Exception Handling,TRUE,TRUE,,
+134,Exception Handling,TRUE,TRUE,,
+135,Exception Handling,TRUE,TRUE,,
+136,Exception Handling,TRUE,TRUE,,
+137,Exception Handling,TRUE,TRUE,,
+138,Exception Handling,TRUE,TRUE,,
+139,Exception Handling,TRUE,TRUE,,
+140,Exception Handling,TRUE,TRUE,,
+141,Exception Handling,TRUE,TRUE,,
+142,Exception Handling,TRUE,TRUE,,
+143,Exception Handling,TRUE,TRUE,,
+144,Exception Handling,TRUE,TRUE,,
+145,Exception Handling,TRUE,TRUE,,
+146,Exception Handling,TRUE,TRUE,,
+147,Exception Handling,TRUE,TRUE,,
+148,Exception Handling,TRUE,TRUE,,
+149,Exception Handling,TRUE,TRUE,,
+150,Exception Handling,TRUE,TRUE,,
