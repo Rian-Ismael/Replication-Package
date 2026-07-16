@@ -72,7 +72,7 @@ The two-agent variant is omitted for cost reasons, since the original results pl
 
 ## Execution environment
 
-Model `gemma4:31b` served by Ollama and accessed by the LangChain pipeline, executed in a Google Colab environment with an NVIDIA A100 GPU, using the default configuration of the reference notebook from the original study. The exact model identifier is recorded in the package.
+Model `gemma4:31b` served by Ollama and accessed by the LangChain pipeline, executed in a Google Colab environment with an NVIDIA A100 GPU, using the default configuration of the reference notebook from the original study (sampling temperature `0.6`). The exact model identifier is recorded in the package.
 
 ## Reproduction
 
@@ -91,13 +91,13 @@ Each notebook exposes the following parameters:
 |---|---|---|
 | `csv_path` | `Dataset.csv` | CSV with the test cases. |
 | `definitions_path` | `test_smell_definitions_and_refactorings.txt` | Smell definitions file. |
-| `smell` | one of the five smells | Smell analyzed in the run. 
-| `temperature` | 0.6 | Sampling temperature (default value of the reference notebook)
+| `smell` | one of the five smells | Smell analyzed in the run. |
 | `model` | `gemma4:31b` | Model served by Ollama. |
+| `temperature` | `0.6` | Sampling temperature (default value of the reference notebook). |
 | `base_url` | `http://localhost:11434` | Ollama server address. |
 | `max_iters` | `3` (multi only) | Maximum iterations of the Evaluator-Optimizer loop. |
 
-The reported results were obtained with the default configuration of the reference notebook from the original study.
+The reported results were obtained with the default configuration of the reference notebook from the original study, which uses a sampling temperature of `0.6`; the remaining generation parameters were left at the Ollama defaults.
 
 ## Output format
 
