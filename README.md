@@ -17,26 +17,32 @@ With a single agent and a single attempt, Gemma-4-31B correctly refactored 78.7%
 
 ```
 .
-├── Dataset/
-│   └── Dataset.xlsx                      # 150 instances (5 sheets, one per smell)
-├── Source Code/
-│   ├── test_smell_refactor_single_agent.ipynb   # single-agent pipeline
-│   ├── test_smell_refactor_multi_agent.ipynb    # four-agent pipeline
-│   └── test_smell_definitions_and_refactorings.txt  # smell definitions (notebook input)
-├── Outputs Gemma4-31B/
-│   ├── Single/                           # single-agent pipeline outputs
-│   │   ├── Assertion Roulette/           # output_*.csv + agente_single_*.txt
-│   │   ├── Conditional Test Logic/
-│   │   ├── Duplicate Assert/
-│   │   ├── Exception Handling/
-│   │   └── Magic Number/
-│   └── Multi/                            # four-agent pipeline outputs
-│       ├── Assertion Roulette/           # output_*.csv + agentes_multi_*.txt
-│       ├── Conditional Test Logic/
-│       ├── Duplicate Assert/
-│       ├── Exception Handling/
-│       └── Magic Number/
-└── Gemma4-31B-Results.xlsx              # consolidated spreadsheet (evaluation and times)
+|-- Dataset/
+|   |-- Dataset - Assertion Roulette.csv     # 30 instances
+|   |-- Dataset - Conditional Test.csv       # 30 instances
+|   |-- Dataset - Duplicate Assert.csv       # 30 instances
+|   |-- Dataset - Exception Handling.csv     # 30 instances
+|   `-- Dataset - Magic Number.csv           # 30 instances
+|-- Source Code/
+|   |-- test_smell_refactor_single_agent.ipynb   # single-agent notebook (Colab/Jupyter)
+|   |-- test_smell_refactor_multi_agent.ipynb    # four-agent notebook (Colab/Jupyter)
+|   |-- test_smell_definitions_and_refactorings.txt
+|   `-- Scripts/                             # command-line version of the pipelines
+|       |-- test_smell_refactor_single_agent.py
+|       |-- test_smell_refactor_multi_agent.py
+|       |-- test_smell_definitions_and_refactorings.txt
+|       |-- requirements.txt
+|       `-- README.md
+|-- Outputs Gemma4-31B/
+|   |-- Single/                              # single-agent outputs (per smell: output_*.csv + agente_single_*.txt)
+|   `-- Multi/                               # four-agent outputs (per smell: output_*.csv + agentes_multi_*.txt)
+|-- Results/
+|   |-- Results - Category Error.csv         # per-instance result and failure reason, both configurations
+|   |-- Results - execution_times.csv        # execution time per smell and configuration
+|   |-- Single/                              # per-smell single-agent result CSVs
+|   `-- Multi/                               # per-smell four-agent result CSVs
+|-- LICENSE
+`-- README.md
 ```
 
 ## Dataset
@@ -53,7 +59,7 @@ Definitions adopted for each smell type, following the original study:
 | **Exception Handling** | Occurs when a test method contains either a `throw` statement or at least a `catch` clause. To avoid this smell, use the testing framework's features (e.g., `assertThrows`) instead of manually catching or throwing exceptions. |
 | **Magic Number** | Occurs when a test method contains an assertion with a numeric literal as an argument. Refactoring involves extracting and initializing all magic numbers into constants or local variables with descriptive names. |
 
-`Dataset.xlsx` contains one sheet per smell, with the columns `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code`, and `Line Count`. The notebooks read the dataset in CSV format (`Dataset.csv`, via `pd.read_csv`), corresponding to one smell at a time. To reproduce, export the sheet of the desired smell from `Dataset.xlsx` as CSV and point the `csv_path` parameter to that file (or save it as `Dataset.csv`).
+The `Dataset/` folder provides one ready-to-use CSV per smell. Each CSV has the columns `Id`, `LLM`, `Date`, `Test Smell`, `Language`, `Project`, `URL`, `Method`, `Test Code`, and `Line Count`. The pipelines read the test code from the `Test Code` column. To reproduce, point the input parameter (`csv_path` in the notebooks or `--csv` in the scripts) at the CSV of the smell you want to process; no conversion step is needed.
 
 ## Pipelines
 
@@ -157,13 +163,14 @@ If not, respond with EXACTLY "NO" on the first line, then explain in one or two 
 Let's think step by step.
 ```
 
-## Execution environment
+## How to run
 
-Model `gemma4:31b` served by Ollama and accessed by the LangChain pipeline, executed in a Google Colab environment with an NVIDIA A100 GPU, using the default configuration of the reference notebook from the original study (sampling temperature `0.6`). The exact model identifier is recorded in the package.
+Two equivalent implementations are provided under `Source Code/`:
 
-## Reproduction
+* **Notebooks** (`.ipynb`): the versions used to produce the results in this package. Open in Google Colab or Jupyter, provide the smell CSV and the definitions file, set the parameters, and run all cells.
+* **Scripts** (`Scripts/*.py`): a command-line version with the same logic and prompts. See `Source Code/Scripts/README.md` for per-OS setup and run instructions.
 
-Requirements in the environment before execution: the smell CSV (exported from `Dataset.xlsx`), the definitions file `test_smell_definitions_and_refactorings.txt` (in `Source Code/`), and a reachable Ollama server. The definitions file follows the format read by the `load_smell` function:
+Both require a reachable Ollama server. The definitions file `test_smell_definitions_and_refactorings.txt` follows the format read by the `load_smell` function:
 
 ```
 test_smell_name = "Smell Name"
@@ -172,25 +179,27 @@ test_smell_definition = """
 """
 ```
 
-Each notebook exposes the following parameters:
+The pipelines expose the following parameters:
 
 | Parameter | Default | Description |
 |---|---|---|
-| `csv_path` | `Dataset.csv` | CSV with the test cases. |
-| `definitions_path` | `test_smell_definitions_and_refactorings.txt` | Smell definitions file. |
-| `smell` | one of the five smells | Smell analyzed in the run. |
-| `model` | `gemma4:31b` | Model served by Ollama. |
-| `temperature` | `0.6` | Sampling temperature (default value of the reference notebook). |
-| `base_url` | `http://localhost:11434` | Ollama server address. |
-| `max_iters` | `3` (multi only) | Maximum iterations of the Evaluator-Optimizer loop. |
+| `csv_path` / `--csv` | `Dataset.csv` | CSV with the test cases (point it at a file in `Dataset/`). |
+| `definitions_path` / `--definitions` | `test_smell_definitions_and_refactorings.txt` | Smell definitions file. |
+| `smell` / `--smell` | one of the five smells | Smell analyzed in the run. |
+| `model` / `--model` | `gemma4:31b` | Model served by Ollama. |
+| `temperature` / `--temperature` | `0.6` | Sampling temperature (default value of the reference notebook). |
+| `base_url` / `--base_url` | `http://localhost:11434` | Ollama server address. |
+| `max_iters` / `--max_iters` | `3` (multi only) | Maximum iterations of the Evaluator-Optimizer loop. |
 
-The reported results were obtained with the default configuration of the reference notebook from the original study, which uses a sampling temperature of `0.6`; the remaining generation parameters were left at the Ollama defaults.
+## Execution environment
+
+Model `gemma4:31b` served by Ollama and accessed by the LangChain pipeline, executed in a Google Colab environment with an NVIDIA A100 GPU, using the default configuration of the reference notebook from the original study (sampling temperature `0.6`). The exact model identifier is recorded in the package. The reported results were obtained with that default configuration; the remaining generation parameters were left at the Ollama defaults.
 
 ## Output format
 
-In the single-agent pipeline, `output_<smell>.csv` appends to the dataset the columns `LLM`, `Test Smell`, `Date`, and `Refactored code`. In the four-agent pipeline, the CSV records the decisions per iteration (`1° - Detected smell?`, `1° - Do you agree with detection?`, `1° - Refactored code`, `1° -  LLM - Is there still a test smell?`, and analogous ones for the 2nd and 3rd iterations). Each folder also includes a `.txt` log with the full trace of the agents' responses per instance.
+In the single-agent pipeline, `output_<smell>.csv` appends to the dataset the columns `LLM`, `Test Smell`, `Date`, and `Refactored code`. In the four-agent pipeline, the CSV records the decisions per iteration (`1° - Detected smell?`, `1° - Do you agree with detection?`, `1° - Refactored code`, `1° -  LLM - Is there still a test smell?`, and analogous ones for the 2nd and 3rd iterations). Each folder under `Outputs Gemma4-31B/` also includes a `.txt` log with the full trace of the agents' responses per instance.
 
-The `Gemma4-31B-Results.xlsx` spreadsheet consolidates the evaluation. The `Category` sheet contains the per-instance result (`True`/`False`) for both configurations, with the failure reason recorded when the result is `False`. The `Time` sheet contains the execution times per smell and configuration. The remaining sheets store the raw outputs per smell and the failure categorization.
+The `Results/` folder consolidates the evaluation. `Results - Category Error.csv` contains the per-instance result (`True`/`False`) for both configurations, with the failure reason recorded when the result is `False`. `Results - execution_times.csv` contains the execution times per smell and configuration. The `Single/` and `Multi/` subfolders store the per-smell result CSVs.
 
 ## Evaluation criteria
 
@@ -224,7 +233,7 @@ Execution time per smell:
 | Duplicate Assert | 47m27s | 1h34m07s |
 | Exception Handling | 25m55s | 48m38s |
 | Magic Number | 18m21s | 47m00s |
-| **Total** | **≈170m** | **≈277m** |
+| **Total** | **~170m** | **~277m** |
 
 Processing the 150 instances took about 170 minutes with a single agent and about 277 minutes with four, an increase of roughly 63%.
 
@@ -260,11 +269,11 @@ If this work is useful, please cite:
 }
 ```
 
-Author: Rian Melo, Universidade Federal de Campina Grande (UFCG), Campina Grande, Paraíba, Brazil. Contact: rian.melo@ccc.ufcg.edu.br
+Author: Rian Melo, Universidade Federal de Campina Grande (UFCG), Campina Grande, Paraiba, Brazil. Contact: rian.melo@ccc.ufcg.edu.br
 
 Repository: https://github.com/Rian-Ismael/Replication-Package
 
 ## References
 
-* Rian Melo et al. **Agentic LMs: Hunting Down Test Smells.** IEEE Software 43, 1 (2026), 32–40. doi:10.1109/MS.2025.3621356
+* Rian Melo et al. **Agentic LMs: Hunting Down Test Smells.** IEEE Software 43, 1 (2026), 32-40. doi:10.1109/MS.2025.3621356
 * Rian Melo et al. **Agentic LMs: Hunting Down Test Smells, Replication Package.** Zenodo. doi:10.5281/zenodo.17285750
