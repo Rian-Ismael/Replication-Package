@@ -91,7 +91,8 @@ Each notebook exposes the following parameters:
 |---|---|---|
 | `csv_path` | `Dataset.csv` | CSV with the test cases. |
 | `definitions_path` | `test_smell_definitions_and_refactorings.txt` | Smell definitions file. |
-| `smell` | one of the five smells | Smell analyzed in the run. |
+| `smell` | one of the five smells | Smell analyzed in the run. 
+| `temperature` | 0.6 | Sampling temperature (default value of the reference notebook)
 | `model` | `gemma4:31b` | Model served by Ollama. |
 | `base_url` | `http://localhost:11434` | Ollama server address. |
 | `max_iters` | `3` (multi only) | Maximum iterations of the Evaluator-Optimizer loop. |
