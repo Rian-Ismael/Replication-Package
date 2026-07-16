@@ -1,0 +1,513 @@
+Id,LLM,Date,Test Smell,Language,Project,URL,Method,Test Code,Line Count
+31,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/data-transfer/portability-data-transfer-microsoft/src/test/java/org/datatransferproject/transfer/microsoft/transformer/calendar/ToCalendarModelTransformerTest.java,testTransform,"  public void testTransform() throws IOException {
+    Map<String, Object> rawEvent = mapper.readValue(SAMPLE_CALENDAR, Map.class);
+
+    CalendarModel calendar = transformer.apply(rawEvent, context);
+
+    assertEquals(""123"", calendar.getId());
+    assertEquals(""Calendar"", calendar.getName());
+    assertEquals(""Calendar"", calendar.getDescription());
+  }",9.0
+32,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/extensions/data-transfer/portability-data-transfer-rememberthemilk/src/test/java/org/datatransferproject/transfer/rememberthemilk/model/tasks/ModelTest.java,parseListAddResponse,"  @Test
+  public void parseListAddResponse() throws IOException {
+    String content =
+        ""<?xml version='1.0' encoding='UTF-8'?>""
+            + ""<rsp stat=\""ok\"">""
+            + ""<transaction id=\""123\"" undoable=\""0\""/>""
+            + ""<list id=\""456\"" name=\""list\"" deleted=\""0\"" locked=\""0\"" ""
+            + ""archived=\""0\"" position=\""0\"" smart=\""0\"" sort_order=\""0\""/></rsp>\n"";
+
+    ListAddResponse response = mapper.readValue(content, ListAddResponse.class);
+    assertThat(response.stat).isEqualTo(""ok"");
+    assertThat(response.list.id).isEqualTo(456);
+  }",13.0
+33,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-api/src/test/java/org/datatransferproject/api/action/datatype/DataTypesActionTest.java,testGetRequestType,"  @Test
+  public void testGetRequestType() {
+    AuthServiceProviderRegistry registry = mock(AuthServiceProviderRegistry.class);
+    DataTypesAction dataTypesAction = new DataTypesAction(registry, new Monitor() {
+    });
+
+    Class<GetDataTypes> actual = dataTypesAction.getRequestType();
+    assertNotEquals(actual, null);
+    assertEquals(actual, GetDataTypes.class);
+  }",10.0
+34,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-spi-transfer/src/test/java/org/datatransferproject/spi/transfer/types/ContinuationDataTest.java,verifySerializeDeserialize,"  @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerSubtypes(
+        ContinuationData.class, IntPaginationToken.class, IdOnlyContainerResource.class);
+
+    ContinuationData continuationData = new ContinuationData(new IntPaginationToken(100));
+    continuationData.addContainerResource(new IdOnlyContainerResource(""123""));
+
+    String serialized = objectMapper.writeValueAsString(continuationData);
+
+    ContinuationData deserialized = objectMapper.readValue(serialized, ContinuationData.class);
+
+    assertNotNull(deserialized);
+    assertEquals(100, ((IntPaginationToken) deserialized.getPaginationData()).getStart());
+    assertEquals(
+        ""123"", ((IdOnlyContainerResource) deserialized.getContainerResources().get(0)).getId());
+  }",18.0
+35,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-transfer/src/test/java/org/datatransferproject/transfer/WorkerModuleTest.java,findTransferExtension,"  @Test
+  public void findTransferExtension() {
+    ImmutableList<TransferExtension> transferExtensions = ImmutableList.of(FOO_UPPER, BAR_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, ""FOO"")).isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, ""foo"")).isEqualTo(FOO_UPPER);
+  }",6.0
+36,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-transfer/src/test/java/org/datatransferproject/transfer/WorkerModuleTest.java,findTransferExtension_mixedCasing,"  @Test
+  public void findTransferExtension_mixedCasing() {
+    ImmutableList<TransferExtension> transferExtensions = ImmutableList.of(FOO_UPPER, BAR_LOWER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, ""FOO"")).isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, ""foo"")).isEqualTo(FOO_UPPER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, ""BAR"")).isEqualTo(BAR_LOWER);
+    assertThat(WorkerModule.findTransferExtension(transferExtensions, ""bar"")).isEqualTo(BAR_LOWER);
+  }",8.0
+37,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-types-client/src/test/java/org/datatransferproject/types/client/transfer/CreateTransferJobTest.java,verifySerializeDeserialize,"  @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    String serialized =
+        objectMapper.writeValueAsString(
+            new CreateTransferJob(
+                ""testSource"",
+                ""testDestination"",
+                ""https://localhost:3000/callback/testSource"",
+                ""https://localhost:3000/callback/testDestination"",
+                PHOTOS,
+                null,
+                ""cleartext""));
+
+    CreateTransferJob deserialized = objectMapper.readValue(serialized, CreateTransferJob.class);
+
+    assertEquals(deserialized.getExportService(),""testSource"");
+    assertEquals(deserialized.getImportService(),""testDestination"");
+    assertEquals(
+         deserialized.getExportCallbackUrl(),""https://localhost:3000/callback/testSource"");
+    assertEquals(
+         deserialized.getImportCallbackUrl(),""https://localhost:3000/callback/testDestination"");
+    assertEquals(PHOTOS, deserialized.getDataType());
+  }",25.0
+38,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-types-common/src/test/java/org/datatransferproject/types/common/models/mail/MailContainerResourceTest.java,verifySerializeDeserialize,"  @Test
+  public void verifySerializeDeserialize() throws Exception {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerSubtypes(MailContainerResource.class);
+
+    List<MailContainerModel> containers =
+        ImmutableList.of(
+            new MailContainerModel(""id1"", ""container1""),
+            new MailContainerModel(""id2"", ""container2""));
+
+    List<MailMessageModel> messages =
+        ImmutableList.of(
+            new MailMessageModel(""foo"", ImmutableList.of(""1"")),
+            new MailMessageModel(""bar"", ImmutableList.of(""1"", ""2'"")));
+
+    ContainerResource data = new MailContainerResource(containers, messages);
+
+    String serialized = objectMapper.writeValueAsString(data);
+
+    ContainerResource deserializedModel =
+        objectMapper.readValue(serialized, ContainerResource.class);
+
+    Truth.assertThat(deserializedModel).isNotNull();
+    Truth.assertThat(deserializedModel).isInstanceOf(MailContainerResource.class);
+    MailContainerResource deserialized = (MailContainerResource) deserializedModel;
+    Truth.assertThat(deserialized.getMessages()).hasSize(2);
+    Truth.assertThat(deserialized.getFolders()).hasSize(2);
+    Truth.assertThat(deserialized).isEqualTo(data);
+  }",29.0
+39,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-types-common/src/test/java/org/datatransferproject/types/common/models/photos/PhotosContainerResourceTest.java,verifyTransmogrifyAlbums_oddDivision,"  @Test
+  public void verifyTransmogrifyAlbums_oddDivision() throws Exception {
+    TransmogrificationConfig config = new TransmogrificationConfig() {
+        public int getAlbumMaxSize() { return 2;}
+    };
+    List<PhotoAlbum> albums =
+        ImmutableList.of(new PhotoAlbum(""id1"", ""albumb1"", ""This is a fake album""));
+
+    List<PhotoModel> photos =
+        ImmutableList.of(
+            new PhotoModel(""Pic1"", ""http://fake.com/1.jpg"", ""A pic"", ""image/jpg"", ""p1"", ""id1"",
+                false),
+            new PhotoModel(""Pic3"", ""http://fake.com/2.jpg"", ""A pic"", ""image/jpg"", ""p3"", ""id1"",
+                false),
+            new PhotoModel(
+                ""Pic2"", ""https://fake.com/pic.png"", ""fine art"", ""image/png"", ""p2"", ""id1"", false));
+
+    PhotosContainerResource data = new PhotosContainerResource(albums, photos);
+    data.transmogrify(config);
+    Truth.assertThat(data.getAlbums()).hasSize(2);
+    Truth.assertThat(data.getPhotos()).hasSize(3);
+  }",22.0
+40,,,Assertion Roulette,Java,https://github.com/dtinit/data-transfer-project,https://raw.githubusercontent.com/dtinit/data-transfer-project/master/portability-types-transfer/src/test/java/org/datatransferproject/types/transfer/auth/AuthDataSerializationTest.java,verifyTokenSecretAuthData,"  @Test
+  public void verifyTokenSecretAuthData() throws IOException {
+    final String token = ""my_secret_token"";
+    final String secret = ""my_secret"";
+    final TokenSecretAuthData authData = new TokenSecretAuthData(token, secret);
+
+    final String s = objectMapper.writeValueAsString(authData);
+    final AuthData readValue = objectMapper.readValue(s, AuthData.class);
+    assertTrue(
+        readValue instanceof TokenSecretAuthData,
+        ""The read AuthData should be an instance of TokenAuthData"");
+    final TokenSecretAuthData readAuthData = (TokenSecretAuthData) readValue;
+    assertEquals(token, readAuthData.getToken(), ""Expect token to be the same"");
+    assertEquals(secret, readAuthData.getSecret(), ""Expect secret to be the same"");
+  }",15.0
+41,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/idmanagement/VertexIDAssignerTest.java,testDisableIdsFlush,"    @Test
+    public void testDisableIdsFlush() {
+        final JanusGraph graph = getInMemoryGraph(false, false, false, 2);
+        JanusGraphVertex v1 = graph.addVertex();
+        JanusGraphVertex v2 = graph.addVertex();
+        Edge e = v1.addEdge(""knows"", v2);
+        e.property(""prop"", ""old"");
+        graph.tx().commit();
+        assertEquals(""old"", graph.traversal().E().next().property(""prop"").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        Object id = graph.traversal().E().next().id();
+
+        // VertexIDAssigner shouldn't assign a new id if the edge is an existing one
+        e = graph.traversal().E().next();
+        e.property(""prop"", ""new"");
+        graph.tx().commit();
+        assertEquals(""new"", graph.traversal().E().next().property(""prop"").value());
+        assertEquals(1, (long) graph.traversal().E().count().next());
+        assertEquals(id, graph.traversal().E().next().id());
+    }",20.0
+42,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/log/StandardLogProcessorFrameworkTest.java,testAddLogProcessor,"    @Test
+    public void testAddLogProcessor() throws BackendException, NoSuchFieldException, IllegalAccessException {
+        StandardJanusGraph graph = createGraphWithMockedInternals();
+        StandardLogProcessorFramework logProcessorFramework = new StandardLogProcessorFramework(graph);
+
+        logProcessorFramework.addLogProcessor(""foo-identifier"")
+            .addProcessor((tx, txId, changeState) -> {
+                // no-op processor
+            })
+            .setStartTimeNow()
+            .setProcessorIdentifier(""bar-processor"")
+            .build();
+
+        Field processorLogsField = logProcessorFramework.getClass().getDeclaredField(""processorLogs"");
+        processorLogsField.setAccessible(true);
+        Map<String, Log> processorLogs = (Map<String, Log>) processorLogsField.get(logProcessorFramework);
+
+        assertNotNull(processorLogs, ""processorLogs must not be null or empty after adding a log processor"");
+        assertFalse(processorLogs.isEmpty(), ""processorLogs should be non-empty after adding a processor"");
+    }",20.0
+43,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/management/ConfigurationManagementGraphTest.java,shouldReindexIfPropertyKeyExists,"    @Test
+    public void shouldReindexIfPropertyKeyExists() {
+        final Map<String, Object> map = new HashMap<>();
+        map.put(STORAGE_BACKEND.toStringWithoutRoot(), ""inmemory"");
+        final MapConfiguration config = ConfigurationUtil.loadMapConfiguration(map);
+        final StandardJanusGraph graph = new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(new CommonsConfiguration(config)));
+
+        final String propertyKeyName = ""Created_Using_Template"";
+        final Class dataType = Boolean.class;
+        JanusGraphManagement management = graph.openManagement();
+        management.makePropertyKey(propertyKeyName).dataType(dataType).make();
+        management.commit();
+
+        // Instantiate the ConfigurationManagementGraph Singleton
+        // This is purposefully done after a property key is created to ensure that a REDINDEX is initiated
+        new ConfigurationManagementGraph(graph);
+
+        management = graph.openManagement();
+        final JanusGraphIndex index = management.getGraphIndex(""Created_Using_Template_Index"");
+        final PropertyKey propertyKey = management.getPropertyKey(""Created_Using_Template"");
+        assertNotNull(index);
+        assertNotNull(propertyKey);
+        assertEquals(ENABLED, index.getIndexStatus(propertyKey));
+        management.commit();
+    }",25.0
+44,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/management/ConfigurationManagementGraphTest.java,shouldAlwaysUseACleanTx,"    @Test
+    public void shouldAlwaysUseACleanTx() throws ConfigurationManagementGraphNotEnabledException {
+        final StandardJanusGraph graph = (StandardJanusGraph) JanusGraphFactory.open(""inmemory"");
+        new ConfigurationManagementGraph(graph);
+        final ConfigurationManagementGraph configurationManagementGraph = ConfigurationManagementGraph.getInstance();
+
+        // Create a configuration
+        final Map<String, Object> map = new HashMap<>();
+        map.put(PROPERTY_GRAPH_NAME, ""tx_test_graph"");
+        configurationManagementGraph.createConfiguration(ConfigurationUtil.loadMapConfiguration(map));
+
+        // Get the vertex id from the new configuration
+        long vertexId = (Long) graph.traversal().V().limit(1).next().id();
+
+        // These will use a traversal to read the configurations creating a new transaction automatically
+        assertEquals(1, configurationManagementGraph.getConfigurations().size());
+
+        // Remove the configuration from outside the ConfigurationManagementGraph, this
+        // could happen from another node in a cluster.
+        JanusGraphTransaction tx = graph.newTransaction();
+        tx.getVertex(vertexId).remove();
+        tx.commit();
+
+        // If the same transaction is being reused the traversal will be resolved without hitting
+        // the store returning the wrong value.
+        assertEquals(0, configurationManagementGraph.getConfigurations().size());
+    }",27.0
+45,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/management/ManagementLoggerGraphCacheEvictionTest.java,graphShouldBeRemovedFromCache,"    @Test
+    public void graphShouldBeRemovedFromCache() throws InterruptedException {
+        final JanusGraphManager jgm = new JanusGraphManager(new Settings());
+        assertNotNull(jgm);
+        assertNotNull(JanusGraphManager.getInstance());
+        assertNull(jgm.getGraph(""graph1""));
+
+        final Map<String, Object> map = new HashMap<>();
+        map.put(STORAGE_BACKEND.toStringWithoutRoot(), ""inmemory"");
+        map.put(GRAPH_NAME.toStringWithoutRoot(), ""graph1"");
+        final MapConfiguration config = ConfigurationUtil.loadMapConfiguration(map);
+        final StandardJanusGraph graph = new StandardJanusGraph(new GraphDatabaseConfigurationBuilder().build(new CommonsConfiguration(config)));
+        jgm.putGraph(""graph1"", graph);
+        assertEquals(""graph1"", ((StandardJanusGraph) JanusGraphManager.getInstance().getGraph(""graph1"")).getGraphName());
+
+        final ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
+        mgmt.evictGraphFromCache();
+        mgmt.commit();
+
+        // wait for log to be asynchronously pulled
+        Thread.sleep(10000);
+
+        assertNull(jgm.getGraph(""graph1""));
+    }",24.0
+46,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/predicate/AndJanusPredicateTest.java,testIsQNF,"    @Test
+    public void testIsQNF() {
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)).isQNF());
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new OrJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new AndJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+    }",6.0
+47,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/predicate/ConnectiveJanusPredicateTest.java,testTest,"    @Test
+    public void testTest() {
+        final ConnectiveJanusPredicate predicate = getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL));
+        assertTrue(predicate.test(""john"",Arrays.asList(""jo"", ""john"")));
+        assertEquals(predicate.isOr(), predicate.test(""john"",Arrays.asList(""jo"", ""mike"")));
+        assertEquals(predicate.isOr(), predicate.test(""john"",Arrays.asList(""mi"", ""john"")));
+        assertFalse(predicate.test(""john"",Arrays.asList(""mi"", ""mike"")));
+    }",8.0
+48,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/predicate/OrJanusPredicateTest.java,testIsQNF,"    @Test
+    public void testIsQNF() {
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)).isQNF());
+        assertTrue(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new OrJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+        assertFalse(getPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL, new AndJanusPredicate(Arrays.asList(Text.PREFIX, Cmp.EQUAL)))).isQNF());
+    }",6.0
+49,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/query/QueryTest.java,testMultipleKeysQuery,"    @Test
+    public void testMultipleKeysQuery() {
+        tx.makePropertyKey(""name"").dataType(String.class).make();
+        tx.addVertex(""name"",""vertex1"");
+        tx.addVertex(""name"",""vertex2"");
+        tx.addVertex(""name"",""vertex3"");
+
+        int found = Iterators.size(tx.query().has(""name"", Contain.IN, Collections.singletonList(""vertex1"")).vertices().iterator());
+        assertEquals(1, found);
+
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"")).vertices().iterator());
+        assertEquals(2, found);
+
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"")).vertices().iterator());
+        assertEquals(3, found);
+
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"", ""vertex4"")).vertices().iterator());
+        assertEquals(3, found);
+
+        int limit = 2;
+        found = Iterators.size(tx.query().has(""name"", Contain.IN, Arrays.asList(""vertex1"", ""vertex2"", ""vertex3"", ""vertex4"")).limit(limit).vertices().iterator());
+        assertEquals(limit, found);
+    }",23.0
+50,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/query/QueryTest.java,testFuzzyMatchWithoutIndex,"    @Test
+    public void testFuzzyMatchWithoutIndex() {
+        JanusGraphManagement mgmt = graph.openManagement();
+        PropertyKey name = mgmt.makePropertyKey(""name"").dataType(String.class).make();
+        mgmt.commit();
+
+        tx.addVertex().property(""name"", ""some value"");
+        tx.commit();
+
+        // Exact match
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textFuzzy(""some value"")).count().next());
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""value"")).count().next());
+
+        // One character different
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textFuzzy(""some values"")).count().next());
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""values"")).count().next());
+
+        // Two characters different
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textFuzzy(""some val"")).count().next());
+        assertEquals(1, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""values!"")).count().next());
+
+        // Three characters different
+        assertEquals(0, graph.traversal().V().has(""name"", Text.textFuzzy(""some Val"")).count().next());
+        assertEquals(0, graph.traversal().V().has(""name"", Text.textContainsFuzzy(""valuable"")).count().next());
+    }",25.0
+51,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/serializer/SerializerTest.java,testObjectVerification,"    @Test
+    public void testObjectVerification() {
+        serialize.registerClass(2,TClass1.class, new TClass1Serializer());
+        TClass1 t1 = new TClass1(24223,0.25f);
+
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeClassAndObject(t1);
+        out.writeClassAndObject(null);
+        out.writeObject(t1,TClass1.class);
+        out.writeObject(null,TClass1.class);
+
+        //Test failure
+        for (Object o : new Object[]{new TClass2(""abc"",2),Calendar.getInstance(), Lists.newArrayList()}) {
+            try {
+                out.writeObjectNotNull(o);
+                fail();
+            } catch (Exception ignored) {
+
+            }
+        }
+
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        assertEquals(t1, serialize.readClassAndObject(b));
+        assertNull(serialize.readClassAndObject(b));
+        assertEquals(t1, serialize.readObject(b, TClass1.class));
+        assertNull(serialize.readObject(b, TClass1.class));
+
+        assertFalse(b.hasRemaining());
+    }",29.0
+52,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/serializer/SerializerTest.java,largeWriteTest,"    @Test
+    public void largeWriteTest() {
+        final String base = ""ABCDEFGHIJKLMNOPQRSTUVWXYZ""; //26 chars
+        final StringBuilder str = new StringBuilder();
+        for (int i = 0; i < 100; i++) str.append(base);
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeObjectNotNull(str.toString());
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        if (printStats) log.debug(bufferStats(b));
+        assertEquals(str.toString(), serialize.readObjectNotNull(b, String.class));
+        assertFalse(b.hasRemaining());
+    }",12.0
+53,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/serializer/SerializerTest.java,enumSerializeTest,"    @Test
+    public void enumSerializeTest() {
+        serialize.registerClass(1,TEnum.class, new TEnumSerializer());
+        DataOutput out = serialize.getDataOutput(128);
+        out.writeObjectNotNull(TEnum.TWO);
+        out.writeObjectNotNull(TEnum.THREE);
+        ReadBuffer b = out.getStaticBuffer().asReadBuffer();
+        if (printStats) log.debug(bufferStats(b));
+        assertEquals(TEnum.TWO, serialize.readObjectNotNull(b, TEnum.class));
+        assertEquals(TEnum.THREE, serialize.readObjectNotNull(b, TEnum.class));
+        assertFalse(b.hasRemaining());
+
+    }",13.0
+54,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/serializer/SerializerTest.java,testSerializedOrder,"    @Test
+    public void testSerializedOrder() {
+        serialize.registerClass(1,TClass1.class, new TClass1Serializer());
+
+        final Map<Class,Factory> sortTypes = new HashMap<>();
+        for (Map.Entry<Class,Factory> entry : TYPES.entrySet()) {
+            if (serialize.isOrderPreservingDatatype(entry.getKey()))
+                sortTypes.put(entry.getKey(),entry.getValue());
+        }
+        assertEquals(10,sortTypes.size());
+        for (int t = 0; t < 3000000; t++) {
+            DataOutput o1 = serialize.getDataOutput(64);
+            DataOutput o2 = serialize.getDataOutput(64);
+            Map.Entry<Class,Factory> type = Iterables.get(sortTypes.entrySet(),random.nextInt(sortTypes.size()));
+            Comparable c1 = (Comparable)type.getValue().newInstance();
+            Comparable c2 = (Comparable)type.getValue().newInstance();
+            o1.writeObjectByteOrder(c1,type.getKey());
+            o2.writeObjectByteOrder(c2,type.getKey());
+            StaticBuffer s1 = o1.getStaticBuffer();
+            StaticBuffer s2 = o2.getStaticBuffer();
+            assertEquals(Math.signum(c1.compareTo(c2)),Math.signum(s1.compareTo(s2)));
+            Object c1o = serialize.readObjectByteOrder(s1.asReadBuffer(),type.getKey());
+            Object c2o = serialize.readObjectByteOrder(s2.asReadBuffer(),type.getKey());
+            assertEquals(c1,c1o);
+            assertEquals(c2,c2o);
+        }
+
+
+    }",29.0
+55,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/TestCoreElements.java,testMultiplicityCardinality,"    @Test
+    public void testMultiplicityCardinality() {
+        assertEquals(Multiplicity.MULTI,Multiplicity.convert(Cardinality.LIST));
+        assertEquals(Multiplicity.SIMPLE,Multiplicity.convert(Cardinality.SET));
+        assertEquals(Multiplicity.MANY2ONE,Multiplicity.convert(Cardinality.SINGLE));
+
+        assertEquals(Multiplicity.MULTI.getCardinality(),Cardinality.LIST);
+        assertEquals(Multiplicity.SIMPLE.getCardinality(),Cardinality.SET);
+        assertEquals(Multiplicity.MANY2ONE.getCardinality(),Cardinality.SINGLE);
+
+        assertFalse(Multiplicity.MULTI.isConstrained());
+        assertTrue(Multiplicity.SIMPLE.isConstrained());
+        assertTrue(Multiplicity.ONE2ONE.isConstrained());
+
+        assertTrue(Multiplicity.ONE2ONE.isConstrained(Direction.BOTH));
+        assertTrue(Multiplicity.SIMPLE.isConstrained(Direction.BOTH));
+
+        assertFalse(Multiplicity.MULTI.isUnique(Direction.OUT));
+        assertTrue(Multiplicity.MANY2ONE.isUnique(Direction.OUT));
+    }",20.0
+56,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/TestCoreElements.java,testOrder,"    @Test
+    public void testOrder() {
+        assertTrue(Order.ASC.modulateNaturalOrder(""A"".compareTo(""B""))<0);
+        assertTrue(Order.DESC.modulateNaturalOrder(""A"".compareTo(""B""))>0);
+    }",5.0
+57,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/tinkerpop/optimize/AdjacentVertexFilterOptimizerStrategyTest.java,shouldOptimizeFilterStep,"    @Test
+    public void shouldOptimizeFilterStep() {
+        makeSampleGraph();
+
+        // is() optimization within filter
+        assertNumStep(1, 1, g.V(sv[0]).outE(""knows"").filter(__.inV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).outE(""knows"").filter(__.otherV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).bothE(""knows"").filter(__.otherV().is(vs[50])),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+
+        // hasId() optimization within filter
+        assertNumStep(1, 1, g.V(sv[0]).outE(""knows"").filter(__.inV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).outE(""knows"").filter(__.otherV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+        assertNumStep(1, 1, g.V(sv[0]).bothE(""knows"").filter(__.otherV().hasId(vs[50].id())),
+            JanusGraphVertexStep.class, TraversalFilterStep.class);
+    }",20.0
+58,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/tinkerpop/optimize/AdjacentVertexFilterOptimizerStrategyTest.java,shouldNotFailedWithDetachedVertex,"    @Test
+    public void shouldNotFailedWithDetachedVertex() {
+        g.addV(""A"").property(""p"", ""1"").as(""a"")
+         .addV(""A"").property(""p"", ""2"").as(""b"")
+         .addE(""E"").from(""a"").to(""b"")
+         .iterate();
+        g.tx().commit();
+        g.withStrategies(AdjacentVertexFilterOptimizerStrategy.instance());
+
+        Vertex v1 = g.V().has(""p"", ""1"").next();
+        Vertex v2 = g.V().has(""p"", ""2"").next();
+        v1 = DetachedFactory.detach(v1, false);
+        v2 = DetachedFactory.detach(v2, false);
+
+        assertTrue(g.V(v1).bothE(""E"").filter(__.otherV().is(v2)).hasNext());
+        assertTrue(g.V(v1).bothE(""E"").filter(__.otherV().hasId(v2.id())).hasNext());
+    }",17.0
+59,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/graphdb/tinkerpop/plugin/JanusGraphGremlinPluginTest.java,shouldImportDeclaringClass,"    @Test
+    public void shouldImportDeclaringClass() {
+        final JanusGraphGremlinPlugin plugin = JanusGraphGremlinPlugin.instance();
+        final ImportCustomizer customizer = (ImportCustomizer) plugin.getCustomizers().get()[0];
+        final Set<Class> classes = customizer.getClassImports();
+
+        for (final Method m : customizer.getMethodImports()) {
+            final Class c = m.getDeclaringClass();
+            assertTrue(classes.contains(c), ""CLASS_IMPORTS is missing "" + c.getCanonicalName());
+        }
+
+        for (final Enum e : customizer.getEnumImports()) {
+            final Class c = e.getDeclaringClass();
+            assertTrue(classes.contains(c), ""CLASS_IMPORTS is missing "" + c.getCanonicalName());
+        }
+    }",16.0
+60,,,Assertion Roulette,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-test/src/test/java/org/janusgraph/util/datastructures/BitMapTest.java,testBitMap,"    @Test
+    public void testBitMap() {
+        byte map = BitMap.setBitb(BitMap.createMapb(2), 4);
+        assertTrue(BitMap.readBitb(map, 2));
+        assertTrue(BitMap.readBitb(map, 4));
+        map = BitMap.unsetBitb(map, 2);
+        assertFalse(BitMap.readBitb(map, 2));
+        assertFalse(BitMap.readBitb(map, 3));
+        assertFalse(BitMap.readBitb(map, 7));
+        map = BitMap.setBitb(map, 7);
+        assertTrue(BitMap.readBitb(map, 7));
+    }",12.0

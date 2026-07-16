@@ -1,0 +1,478 @@
+Id,LLM,Date,Test Smell,Language,Project,URL,Method,Test Code,Line Count
+1,,,Conditional Test,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/LockKeyColumnValueStoreTest.java,parallelNoncontendedLockStressTest,"    @Test
+    public void parallelNoncontendedLockStressTest() throws InterruptedException {
+        final Executor stressPool = Executors.newFixedThreadPool(CONCURRENCY);
+        final CountDownLatch stressComplete = new CountDownLatch(CONCURRENCY);
+        final long maxWallTimeAllowedMilliseconds = 90 * 1000L;
+        final int lockOperationsPerThread = 100;
+        final LockStressor[] ls = new LockStressor[CONCURRENCY];
+
+        for (int i = 0; i < CONCURRENCY; i++) {
+            ls[i] = new LockStressor(manager[i], store[i], stressComplete,
+                    lockOperationsPerThread, KeyColumnValueStoreUtil.longToByteBuffer(i));
+            stressPool.execute(ls[i]);
+        }
+
+        assertTrue(stressComplete.await(maxWallTimeAllowedMilliseconds, TimeUnit.MILLISECONDS),
+            ""Timeout exceeded"");
+        // All runnables submitted to the executor are done
+
+        for (int i = 0; i < CONCURRENCY; i++) {
+            if (0 < ls[i].temporaryFailures) {
+                log.warn(""Recorded {} temporary failures for thread index {}"", ls[i].temporaryFailures, i);
+            }
+            assertEquals(lockOperationsPerThread, ls[i].succeeded + ls[i].temporaryFailures);
+        }
+    }",25
+2,,,Conditional Test,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/log/LogTest.java,testSeparateReadersAndLogsInSharedManager,"    @Test
+    public void testSeparateReadersAndLogsInSharedManager() throws Exception {
+        final int n = 5;
+        Log[] logs = new Log[n];
+        CountingReader[] counts = new CountingReader[n];
+        for (int i = 0; i < n; i++) {
+            counts[i] = new CountingReader(1, true);
+            logs[i] = manager.openLog(""loner"" + i);
+        }
+        for (int i = 0; i < n; i++) {
+            logs[i].registerReader(ReadMarker.fromNow(),counts[i]);
+            logs[i].add(BufferUtil.getLongBuffer(1L << (i + 1)));
+        }
+        // Check message receipt.
+        for (int i = 0; i < n; i++) {
+            log.debug(""Awaiting CountingReader[{}]"", i);
+            counts[i].await(TIMEOUT_MS);
+            assertEquals(1L << (i + 1), counts[i].totalValue.get());
+            assertEquals(1, counts[i].totalMsg.get());
+        }
+    }",21
+3,,,Conditional Test,Java,https://github.com/JanusGraph/janusgraph,https://raw.githubusercontent.com/JanusGraph/janusgraph/master/janusgraph-backend-testutils/src/main/java/org/janusgraph/diskstorage/util/TestTimeUtility.java,testTimeSequence,"    @Test
+    public void testTimeSequence() throws Exception {
+        Random r = new Random();
+        Instant[] times = new Instant[10];
+        for (int i = 0; i < times.length; i++) {
+            times[i] = TimestampProviders.NANO.getTime();
+            if (i > 0) assertTrue(times[i].compareTo(times[i - 1])>0, times[i] + "" > "" + times[i - 1]);
+            Thread.sleep(r.nextInt(50) + 2);
+        }
+    }",10
+4,,,Conditional Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/extensions/quartz/deployment/src/test/java/io/quarkus/quartz/test/ConcurrentExecutionSkipTest.java,testExecution,"    @Test
+    public void testExecution() {
+        try {
+            // Wait until Jobs#nonconcurrent() is executed 1x and skipped 1x
+            if (Jobs.SKIPPED_LATCH.await(10, TimeUnit.SECONDS)) {
+                // Exactly one job is blocked
+                assertEquals(1, Jobs.COUNTER.get());
+                // Skipped Execution does not fire SuccessfulExecution event
+                assertEquals(0, Jobs.SUCCESS_COUNTER.get());
+                // Unblock all executions
+                Jobs.BLOCKING_LATCH.countDown();
+            } else {
+                fail(""Jobs were not executed in 10 seconds!"");
+            }
+
+            assertTrue(Jobs.FAILED_LATCH.await(5, TimeUnit.SECONDS));
+            assertTrue(Jobs.FAILURE_COUNTER.get() > 0);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }",23
+5,,,Conditional Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/extensions/scheduler/deployment/src/test/java/io/quarkus/scheduler/test/ConcurrentExecutionSkipTest.java,testExecution,"    @Test
+    public void testExecution() {
+        try {
+            // Wait until Jobs#nonconcurrent() is executed 1x and skipped 1x
+            if (Jobs.SKIPPED_LATCH.await(10, TimeUnit.SECONDS)) {
+                // Exactly one job is blocked
+                assertEquals(1, Jobs.COUNTER.get());
+                // Skipped Execution does not fire SuccessfulExecution event
+                assertEquals(0, Jobs.SUCCESS_COUNTER.get());
+                // Unblock all executions
+                Jobs.BLOCKING_LATCH.countDown();
+            } else {
+                fail(""Jobs were not executed in 10 seconds!"");
+            }
+
+            assertTrue(Jobs.FAILED_LATCH.await(5, TimeUnit.SECONDS));
+            assertTrue(Jobs.FAILURE_COUNTER.get() > 0);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }",23
+6,,,Conditional Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/extensions/vertx-http/deployment/src/test/java/io/quarkus/vertx/http/devmode/ArcEndpointTest.java,testBeans,"    @Test
+    public void testBeans() {
+        String debugPath = RestAssured.get(""/console-path"").asString();
+        JsonArray beans = new JsonArray(RestAssured.get(debugPath + ""/arc/beans"").asString());
+        JsonArray observers = new JsonArray(RestAssured.get(debugPath + ""/arc/observers"").asString());
+        JsonObject fooBean = null;
+        JsonObject fooObserver = null;
+        for (int i = 0; i < beans.size(); i++) {
+            JsonObject bean = beans.getJsonObject(i);
+            if (bean.getString(""beanClass"").equals(Foo.class.getName())) {
+                fooBean = bean;
+            }
+        }
+        assertNotNull(fooBean);
+        assertEquals(ApplicationScoped.class.getName(), fooBean.getString(""scope""));
+        assertEquals(""CLASS"", fooBean.getString(""kind""));
+        assertEquals(""foo"", fooBean.getString(""name""));
+        String beanId = fooBean.getString(""id"");
+        assertNotNull(beanId);
+
+        for (int i = 0; i < observers.size(); i++) {
+            JsonObject observer = observers.getJsonObject(i);
+            if (beanId.equals(observer.getString(""declaringBean""))
+                    && StartupEvent.class.getName().equals(observer.getString(""observedType""))) {
+                fooObserver = observer;
+                assertEquals(2500, fooObserver.getInteger(""priority""));
+            }
+        }
+        assertNotNull(fooObserver);
+    }",30
+7,,,Conditional Test,Java,https://github.com/quarkusio/quarkus,https://raw.githubusercontent.com/quarkusio/quarkus/main/integration-tests/reactive-messaging-amqp/src/test/java/io/quarkus/it/amqp/AmqpConnectorTest.java,test,"    @Test
+    public void test() {
+        for (int i = 0; i < RETRY_ATTEMPTS; i++) {
+            try {
+                await()
+                        .until(() -> get(""/amqp/people"").as(TYPE_REF).size() >= 6);
+                return;
+            } catch (ConditionTimeoutException e) {
+                log.error(""Restarting broker, current payload "" + get(""/amqp/people"").as(TYPE_REF));
+                // Sometimes the AMQP broker is just in a broken state, in this case, restart it.
+                restartBroker();
+            } catch (Exception e) {
+                Assertions.fail(e);
+                return;
+            }
+        }
+        Assertions.fail(""Unable to run the AMQP test successfully, despite "" + RETRY_ATTEMPTS + "" restarts of the broker"");
+    }",18
+8,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/containers/ReusabilityUnitTests.java,shouldBeReusable,"        @Test
+        public void shouldBeReusable() {
+            if (reusable) {
+                assertThat(container.canBeReused()).as(""Is reusable"").isTrue();
+            } else {
+                assertThat(container.canBeReused()).as(""Is not reusable"").isFalse();
+            }
+        }",8
+9,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/junit/DockerComposeContainerScalingTest.java,simpleTest,"    @Test
+    public void simpleTest() {
+        for (int i = 0; i < 3; i++) {
+            clients[i].incr(""somekey"");
+
+            assertThat(clients[i].get(""somekey"")).as(""Each redis instance is separate"").isEqualTo(""1"");
+        }
+    }",8
+10,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/core/src/test/java/org/testcontainers/utility/MountableFileTest.java,noTrailingSlashesInTarEntryNames,"    @Test
+    public void noTrailingSlashesInTarEntryNames() throws Exception {
+        final MountableFile mountableFile = MountableFile.forClasspathResource(""mappable-resource/test-resource.txt"");
+
+        @Cleanup
+        final TarArchiveInputStream tais = intoTarArchive(taos -> {
+            mountableFile.transferTo(taos, ""/some/path.txt"");
+            mountableFile.transferTo(taos, ""/path.txt"");
+            mountableFile.transferTo(taos, ""path.txt"");
+        });
+
+        ArchiveEntry entry;
+        while ((entry = tais.getNextEntry()) != null) {
+            assertThat(entry.getName()).as(""no entries should have a trailing slash"").doesNotEndWith(""/"");
+        }
+    }",16
+11,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersNestedRestartedContainerTests.java,both_containers_should_be_running,"        @Test
+        void both_containers_should_be_running() {
+            // top level container is restarted for nested methods
+            assertThat(topLevelContainer.isRunning()).isTrue();
+            // nested containers are only available inside their nested class
+            assertThat(nestedContainer.isRunning()).isTrue();
+            // }}}
+            if (nestedContainerId == null) {
+                nestedContainerId = nestedContainer.getContainerId();
+            } else {
+                assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+            }
+            // testClass {{
+        }",14
+12,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersNestedRestartedContainerTests.java,containers_should_not_be_the_same,"       @Test
+        void containers_should_not_be_the_same() {
+            assertThat(nestedContainer.getContainerId()).isNotEqualTo(topLevelContainer.getContainerId());
+
+            if (nestedContainerId == null) {
+                nestedContainerId = nestedContainer.getContainerId();
+            } else {
+                assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+            }
+        }",10
+13,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersNestedRestartedContainerTests.java,ids_should_not_change,"       @Test
+        void ids_should_not_change() {
+            assertThat(topLevelContainer.getContainerId()).isNotEqualTo(topLevelContainerId);
+
+            if (nestedContainerId == null) {
+                nestedContainerId = nestedContainer.getContainerId();
+            } else {
+                assertThat(nestedContainer.getContainerId()).isNotEqualTo(nestedContainerId);
+            }
+        }",10
+14,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersRestartBetweenTests.java,first_test,"   @Test
+    void first_test() {
+        if (lastContainerId == null) {
+            lastContainerId = genericContainer.getContainerId();
+        } else {
+            assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+        }
+    }",8
+15,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersRestartBetweenTests.java,second_test,"   @Test
+    void second_test() {
+        if (lastContainerId == null) {
+            lastContainerId = genericContainer.getContainerId();
+        } else {
+            assertThat(genericContainer.getContainerId()).isNotEqualTo(lastContainerId);
+        }
+    }",8
+16,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersSharedContainerTests.java,first_test,"   @Test
+    void first_test() {
+        if (lastContainerId == null) {
+            lastContainerId = GENERIC_CONTAINER.getContainerId();
+        } else {
+            assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+        }
+    }",8
+17,,,Conditional Test,Java,https://github.com/testcontainers/testcontainers-java,https://raw.githubusercontent.com/testcontainers/testcontainers-java/main/modules/junit-jupiter/src/test/java/org/testcontainers/junit/jupiter/TestcontainersSharedContainerTests.java,second_test,"   @Test
+    void second_test() {
+        if (lastContainerId == null) {
+            lastContainerId = GENERIC_CONTAINER.getContainerId();
+        } else {
+            assertThat(GENERIC_CONTAINER.getContainerId()).isEqualTo(lastContainerId);
+        }
+    }",8
+18,,,Conditional Test,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/CtagsTest.java,bug14924,"   @Test
+    void bug14924() throws Exception {
+        // Expected method names found in the file
+        String[] names = {""ts"", ""classNameOnly"", ""format""};
+        // Expected line numbers for the methods
+        int[] lines = {44, 48, 53};
+
+        Definitions result = getDefs(""bug14924/FileLogFormatter.java"");
+        int count = 0;
+        for (Definitions.Tag tag : result.getTags()) {
+            if (tag.type.startsWith(""method"")) {
+                assertTrue(count < names.length, ""too many methods"");
+                assertEquals(names[count], tag.symbol, ""method name"");
+                assertEquals(lines[count], tag.line, ""method line"");
+                count++;
+            }
+        }
+        assertEquals(names.length, count, ""method count"");
+    }",19
+19,,,Conditional Test,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/CtagsTest.java,bug19195,"   @Test
+    void bug19195() throws Exception {
+        // Expected method names found in the file
+        String[] names = {""foo"", ""bar"", ""_fce"", ""__fce""};
+        // Expected line numbers for the methods
+        int[] lines = {26, 49, 69, 69};
+
+        /* Perform the actual test. */
+        Definitions result = getDefs(""bug19195/test.s"");
+        int count = 0;
+        for (Definitions.Tag tag : result.getTags()) {
+            if (tag.type.startsWith(""function"")) {
+                assertTrue(count < names.length, ""too many functions"");
+                assertEquals(names[count], tag.symbol, ""function name"");
+                assertEquals(lines[count], tag.line, ""function line"");
+                count++;
+            }
+        }
+        assertEquals(names.length, count, ""function count"");
+    }",20
+20,,,Conditional Test,Java,https://github.com/oracle/opengrok,https://raw.githubusercontent.com/oracle/opengrok/master/opengrok-indexer/src/test/java/org/opengrok/indexer/analysis/executables/JavaClassAnalyzerFactoryTest.java,testDylibCafebabeWrtAnalyzerGuru,"   @Test
+    void testDylibCafebabeWrtAnalyzerGuru() throws IOException {
+        InputStream res = getClass().getClassLoader().getResourceAsStream(
+            ""analysis/executables/fat.dylib"");
+        assertNotNull(res, ""despite inclusion locally,"");
+
+        AnalyzerFactory fac = AnalyzerGuru.find(res);
+        if (fac != null) {
+            assertNotSame(fac.getClass(), JavaClassAnalyzerFactory.class, ""should not be JavaClassAnalyzerFactory"");
+        }
+    }",11
+21,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/ResourceListTest.java,multiWrite1,"    @Test
+    public void multiWrite1() {
+        y.w(e);
+        assertFalse(x.isCollidingWith(y));
+        assertFalse(y.isCollidingWith(x));
+
+        for (int i = 0; i < fWriteCount; i++) {
+            x.w(e);
+            assertTrue(""Total = W"" + (i + 1) + "", Limit = W1"", x.isCollidingWith(y));
+            assertTrue(""Total = W"" + (i + 1) + "", Limit = W1"", y.isCollidingWith(x));
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertTrue(""Total = W"" + (i + fWriteCount) + "", Limit = W1"", x.isCollidingWith(y));
+            assertTrue(""Total = W"" + (i + fWriteCount) + "", Limit = W1"", y.isCollidingWith(x));
+            x.w(e);
+        }
+    }",18
+22,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/ResourceListTest.java,multiWriteN,"    @Test
+    public void multiWriteN() {
+        y.w(f);
+        for (int i = 0; i < f.numConcurrentWrite; i++) {
+            assertFalse(""Total = W"" + i + "", Limit = W"" + f.numConcurrentWrite, x.isCollidingWith(y));
+            assertFalse(""Total = W"" + i + "", Limit = W"" + f.numConcurrentWrite, y.isCollidingWith(x));
+            x.w(f);
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertTrue(""Total = W"" + (fWriteCount + i) + "", Limit = W"" + fWriteCount, x.isCollidingWith(y));
+            assertTrue(""Total = W"" + (fWriteCount + i) + "", Limit = W"" + fWriteCount, y.isCollidingWith(x));
+            x.w(f);
+        }
+    }",15
+23,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/ResourceListTest.java,multiRead1,"    @Test
+    public void multiRead1() {
+        y.r(e);
+        for (int i = 0; i < fWriteCount; i++) {
+            assertFalse(""Total = R"" + (i + 1) + "", Limit = W1"", x.isCollidingWith(y));
+            assertFalse(""Total = R"" + (i + 1) + "", Limit = W1"", y.isCollidingWith(x));
+            x.r(e);
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertFalse(""Total = R"" + (i + fWriteCount) + "", Limit = W1"", x.isCollidingWith(y));
+            assertFalse(""Total = R"" + (i + fWriteCount) + "", Limit = W1"", y.isCollidingWith(x));
+            x.r(e);
+        }
+    }",15
+24,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/ResourceListTest.java,multiReadN,"    @Test
+    public void multiReadN() {
+        y.r(f);
+        for (int i = 0; i < fWriteCount; i++) {
+            assertFalse(""Total = R"" + (i + 1) + "", Limit = W"" + fWriteCount, x.isCollidingWith(y));
+            assertFalse(""Total = R"" + (i + 1) + "", Limit = W"" + fWriteCount, y.isCollidingWith(x));
+            x.r(f);
+        }
+        int j = entropy.nextInt(50) + 3;
+        for (int i = 1; i < j; i++) {
+            assertFalse(""Total = R"" + (fWriteCount + i) + "", Limit = W"" + fWriteCount, x.isCollidingWith(y));
+            assertFalse(""Total = R"" + (fWriteCount + i) + "", Limit = W"" + fWriteCount, y.isCollidingWith(x));
+            x.r(f);
+        }
+    }",15
+25,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/RunTest.java,getLogReturnsAnRightOrder,"    @Test
+    public void getLogReturnsAnRightOrder() throws Exception {
+        Job j = Mockito.mock(Job.class);
+        File tempBuildDir = tmp.newFolder();
+        Mockito.when(j.getBuildDir()).thenReturn(tempBuildDir);
+        Run<? extends Job<?, ?>, ? extends Run<?, ?>> r = new Run(j, 0) {};
+        File f = r.getLogFile();
+        f.getParentFile().mkdirs();
+        PrintWriter w = new PrintWriter(f, StandardCharsets.UTF_8);
+        for (int i = 0; i < 20; i++) {
+            w.println(""dummy"" + i);
+        }
+
+        w.close();
+        List<String> logLines = r.getLog(10);
+        assertFalse(logLines.isEmpty());
+
+        for (int i = 1; i < 10; i++) {
+            assertEquals(""dummy"" + (10 + i), logLines.get(i));
+        }
+        int truncatedCount = 10 * (""dummyN"".length() + System.lineSeparator().length()) - 2;
+        assertEquals(""[...truncated "" + truncatedCount + "" B...]"", logLines.get(0));
+    }",23
+26,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/model/TimeSeriesTest.java,test1,"    @Test
+    public void test1() {
+        TimeSeries ts = new TimeSeries(0, 1 - 0.1f, 100);
+        float last = ts.getLatest();
+        assertEquals(0f, last, 0f);
+        for (int i = 0; i < 100; i++) {
+            assertEquals(ts.getHistory().length, i + 1);
+            ts.update(1);
+            assertTrue(last <= ts.getLatest());
+            assertTrue(ts.getLatest() <= 1);
+            last = ts.getLatest();
+        }
+
+        for (int i = 0; i < 100; i++)
+        ts.update(1);
+    }",16
+27,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/XmlFileTest.java,canReadXml1_0Test,"    @Test
+    public void canReadXml1_0Test() throws IOException {
+        URL configUrl = getClass().getResource(""/hudson/config_1_0.xml"");
+        XStream2  xs = new XStream2();
+        xs.alias(""hudson"", Jenkins.class);
+
+        XmlFile xmlFile =  new XmlFile(xs, new File(configUrl.getFile()));
+        if (xmlFile.exists()) {
+            Node n = (Node) xmlFile.read();
+            assertThat(n.getNumExecutors(), is(2));
+            assertThat(n.getMode().toString(), is(""NORMAL""));
+        }
+    }",13
+28,,,Conditional Test,Java,https://github.com/jenkinsci/jenkins,https://raw.githubusercontent.com/jenkinsci/jenkins/master/core/src/test/java/hudson/XmlFileTest.java,xml1_0_withSpecialCharsShouldFail,"    @Test
+    public void xml1_0_withSpecialCharsShouldFail() {
+        URL configUrl = getClass().getResource(""/hudson/config_1_0_with_special_chars.xml"");
+        XStream2  xs = new XStream2();
+        xs.alias(""hudson"", Jenkins.class);
+
+        XmlFile xmlFile =  new XmlFile(xs, new File(configUrl.getFile()));
+        if (xmlFile.exists()) {
+            IOException e = assertThrows(IOException.class, xmlFile::read);
+            assertThat(e.getCause(), instanceOf(ConversionException.class));
+            ConversionException ce = (ConversionException) e.getCause();
+            assertThat(ce.get(""cause-exception""), is(StreamException.class.getName()));
+            assertThat(ce.get(""class""), is(Jenkins.class.getName()));
+            assertThat(ce.get(""required-type""), is(Jenkins.class.getName()));
+            assertThat(ce.get(""converter-type""), is(RobustReflectionConverter.class.getName()));
+            assertThat(ce.get(""path""), is(""/hudson/label""));
+            assertThat(ce.get(""line number""), is(""7""));
+        }
+    }",19
+29,,,Conditional Test,Java,https://github.com/lettuce-io/lettuce-core,https://raw.githubusercontent.com/lettuce-io/lettuce-core/main/src/test/java/io/lettuce/core/cluster/NodeSelectionSyncIntegrationTests.java,testReplicasReadWrite,"   @Test
+    void testReplicasReadWrite() {
+
+        NodeSelection<String, String> nodes = commands
+                .nodes(redisClusterNode -> redisClusterNode.getFlags().contains(RedisClusterNode.NodeFlag.SLAVE));
+
+        assertThat(nodes.size()).isEqualTo(2);
+
+        commands.set(key, value);
+        waitForReplication(key, ClusterTestSettings.port4);
+
+        try {
+
+            nodes.commands().get(key);
+            fail(""Missing RedisCommandExecutionException: MOVED"");
+        } catch (RedisCommandExecutionException e) {
+            if (e.getMessage().startsWith(""MOVED"")) {
+                assertThat(e.getSuppressed()).isEmpty();
+            } else {
+                assertThat(e.getSuppressed()).isNotEmpty();
+            }
+        }
+    }",23
+30,,,Conditional Test,Java,https://github.com/Anuken/Mindustry,https://raw.githubusercontent.com/Anuken/Mindustry/master/tests/src/test/java/power/PowerTests.java,directConsumptionStopsWithNoPower,"       @Test
+        void directConsumptionStopsWithNoPower(){
+            Tile producerTile = createFakeTile(0, 0, createFakeProducerBlock(10.0f));
+            ((GeneratorBuild)producerTile.build).productionEfficiency = 1.0f;
+            Tile consumerTile = createFakeTile(0, 1, createFakeDirectConsumer(5.0f));
+
+            PowerGraph powerGraph = new PowerGraph();
+            powerGraph.add(producerTile.build);
+            powerGraph.add(consumerTile.build);
+            powerGraph.update();
+
+            assertEquals(1.0f, consumerTile.build.power.status, Mathf.FLOAT_ROUNDING_ERROR);
+
+            powerGraph.removeList(producerTile.build);
+            powerGraph.add(consumerTile.build);
+            powerGraph.update();
+
+            assertEquals(0.0f, consumerTile.build.power.status, Mathf.FLOAT_ROUNDING_ERROR);
+            if(consumerTile.block().consPower != null){
+                assertEquals(0f, consumerTile.block().consPower.efficiency(consumerTile.build));
+            }
+        }",22
